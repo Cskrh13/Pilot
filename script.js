@@ -21,6 +21,29 @@ const latestFlowMonth = (data) => {
   return dates.sort().at(-1) || null;
 };
 
+// Convertit les dates Excel (numéros de série) et répare les anciennes dates
+// dont le numéro de série avait été interprété comme une année très éloignée.
+function normalizeFlowDate(value) {
+  if (typeof value === "number" || (typeof value === "string" && /^\d{5}(?:\.0+)?$/.test(value.trim()))) {
+    const serial = Number(value);
+    if (window.XLSX?.SSF?.parse_date_code) {
+      const d = XLSX.SSF.parse_date_code(serial);
+      if (d) return `${String(d.y).padStart(4, "0")}-${String(d.m).padStart(2, "0")}-${String(d.d).padStart(2, "0")}`;
+    }
+    const d = new Date(Date.UTC(1899, 11, 30) + Math.round(serial) * 86400000);
+    return d.toISOString().slice(0, 10);
+  }
+  const raw = String(value ?? "").trim();
+  const broken = raw.match(/^\+?0*(\d{5})-(\d{2})-(\d{2})$/);
+  if (broken) return normalizeFlowDate(Number(broken[1]));
+  const iso = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (iso) return raw;
+  const fr = raw.match(/^(\d{1,2})[\/.](\d{1,2})[\/.](\d{4})$/);
+  if (fr) return `${fr[3]}-${fr[2].padStart(2, "0")}-${fr[1].padStart(2, "0")}`;
+  const parsed = new Date(raw);
+  return Number.isNaN(parsed.getTime()) ? raw : parsed.toISOString().slice(0, 10);
+}
+
 function uid() {
   return crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random().toString(16).slice(2);
 }
@@ -107,6 +130,7 @@ async function decryptVault(obj, password) {
   }
   v.recurrences = Array.isArray(v.recurrences) ? v.recurrences : [];
   v.flows = Array.isArray(v.flows) ? v.flows : [];
+  v.flows.forEach(flow => { flow.date = normalizeFlowDate(flow.date); });
   // Compatibilité : les anciennes versions stockaient la fréquence sur le flux sans créer de règle.
   v.flows.forEach(flow => {
     if (!flow.recurrence || !flow.date || v.recurrences.some(r => r.sourceFlowId === flow.id)) return;
@@ -191,15 +215,16 @@ function flowRows(arr, limit, selectable = false) {
           ${sorted.slice(0, limit || sorted.length).map((f) => `
             <tr>
               ${selectable ? `<td><input type="checkbox" class="flow-select" data-flow-id="${safe(f.id)}" aria-label="Sélectionner ce mouvement"></td>` : ''}
-              <td>${safe(f.date)}</td>
+              <td>${safe(normalizeFlowDate(f.date))}</td>
               <td><span class="pill ${f.type}">${f.type === "in" ? "Recette" : "Dépense"}</span></td>
               <td>${safe(f.category)}</td>
               <td>${safe(f.label || "—")}</td>
               <td class="num ${f.type === "in" ? "green" : "red"}">
                 ${f.type === "in" ? "+" : "−"}${money(f.amount)}
               </td>
-              <td>
-                <button class="danger" style="padding:5px 8px" data-del-flow="${safe(f.id)}" aria-label="Supprimer">×</button>
+              <td class="flow-row-actions">${selectable ? `
+                <button class="secondary" style="padding:5px 8px" data-edit-flow="${safe(f.id)}" aria-label="Modifier">Modifier</button>
+                <button class="danger" style="padding:5px 8px" data-del-flow="${safe(f.id)}" aria-label="Supprimer">×</button>` : ""}
               </td>
             </tr>
           `).join("")}
@@ -391,12 +416,9 @@ function parseExcelFile(file) {
 
           let normalizedDate;
           try {
-            const dateObj = new Date(date);
-            if (isNaN(dateObj.getTime())) return null;
-            normalizedDate = dateObj.toISOString().slice(0, 10);
-          } catch {
-            return null;
-          }
+            normalizedDate = normalizeFlowDate(rowObj.date);
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(normalizedDate) || Number.isNaN(Date.parse(normalizedDate + "T12:00:00"))) return null;
+          } catch { return null; }
 
           let normalizedCategory = category;
           if (!categories.includes(normalizedCategory)) {
@@ -649,8 +671,37 @@ document.addEventListener("DOMContentLoaded", () => {
   $("fDate").value = new Date().toISOString().slice(0, 10);
   $("rStart").value = monthNow();
 
-  $("addFlow").onclick = () => $("flowForm").classList.remove("hidden");
-  $("cancelFlow").onclick = () => $("flowForm").classList.add("hidden");
+  let editingFlowId = null;
+  function openFlowForm(flow = null) {
+    editingFlowId = flow?.id || null;
+    $("flowFormTitle").textContent = flow ? "Modifier le mouvement" : "Nouveau mouvement";
+    $("saveFlow").textContent = flow ? "Enregistrer les modifications" : "Ajouter au coffre en mémoire";
+    $("fDate").value = flow ? normalizeFlowDate(flow.date) : new Date().toISOString().slice(0, 10);
+    $("fType").value = flow?.type || "out";
+    $("fAmount").value = flow?.amount ?? "";
+    $("fCategory").value = flow?.category || categories[0];
+    $("fLabel").value = flow?.label || "";
+    $("fRecurring").value = flow?.recurrence || "";
+    $("flowForm").classList.remove("hidden");
+    $("flowForm").scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
+  function syncFlowRecurrence(flow) {
+    const rule = vault.recurrences.find(r => r.sourceFlowId === flow.id);
+    if (!flow.recurrence) {
+      if (rule) vault.recurrences = vault.recurrences.filter(r => r.sourceFlowId !== flow.id);
+      return;
+    }
+    const data = {
+      sourceFlowId: flow.id, type: flow.type, amount: flow.amount,
+      category: flow.category, label: flow.label, freq: flow.recurrence,
+      day: Math.min(28, Math.max(1, Number(flow.date.slice(8, 10)) || 1)),
+      start: flow.date.slice(0, 7), end: null, active: true
+    };
+    if (rule) Object.assign(rule, data);
+    else vault.recurrences.push({ id: uid(), ...data });
+  }
+  $("addFlow").onclick = () => openFlowForm();
+  $("cancelFlow").onclick = () => { editingFlowId = null; $("flowForm").classList.add("hidden"); };
   $("saveFlow").onclick = () => {
     const date = $("fDate").value;
     const amount = Number($("fAmount").value);
@@ -658,23 +709,25 @@ document.addEventListener("DOMContentLoaded", () => {
       alert("Date et montant positif requis.");
       return;
     }
-    const flow = {
-      id: uid(), date, type: $("fType").value,
+    const values = {
+      date, type: $("fType").value,
       amount: Math.round(amount * 100) / 100,
       category: $("fCategory").value, label: $("fLabel").value.trim(),
       recurrence: $("fRecurring").value || null
     };
-    vault.flows.push(flow);
+    let flow;
+    if (editingFlowId) {
+      flow = vault.flows.find(f => f.id === editingFlowId);
+      if (!flow) { alert("Ce mouvement n'existe plus."); return; }
+      Object.assign(flow, values);
+    } else {
+      flow = { id: uid(), ...values };
+      vault.flows.push(flow);
+    }
+    syncFlowRecurrence(flow);
     selectedMonth = date.slice(0, 7);
     $("monthPick").value = selectedMonth;
-    if (flow.recurrence) {
-      vault.recurrences.push({
-        id: uid(), sourceFlowId: flow.id, type: flow.type, amount: flow.amount,
-        category: flow.category, label: flow.label, freq: flow.recurrence,
-        day: Math.min(28, Math.max(1, Number(date.slice(8, 10)) || 1)),
-        start: date.slice(0, 7), end: null, active: true
-      });
-    }
+    editingFlowId = null;
     $("fAmount").value = "";
     $("fLabel").value = "";
     $("flowForm").classList.add("hidden");
@@ -698,9 +751,17 @@ document.addEventListener("DOMContentLoaded", () => {
     updateFlowSelectionUI();
   });
   $("flowTable").onclick = (e) => {
-    const b = e.target.closest("[data-del-flow]");
-    if (b && confirm("Supprimer ce mouvement de la mémoire de travail ?")) {
-      vault.flows = vault.flows.filter((f) => f.id !== b.dataset.delFlow);
+    const edit = e.target.closest("[data-edit-flow]");
+    if (edit) {
+      const flow = vault.flows.find(f => f.id === edit.dataset.editFlow);
+      if (flow) openFlowForm(flow);
+      return;
+    }
+    const del = e.target.closest("[data-del-flow]");
+    if (del && confirm("Supprimer ce mouvement de la mémoire de travail ?")) {
+      const deletedId = del.dataset.delFlow;
+      vault.flows = vault.flows.filter((f) => f.id !== deletedId);
+      vault.recurrences = vault.recurrences.filter(r => r.sourceFlowId !== deletedId);
       renderAll();
     }
   };
@@ -715,6 +776,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!ids.size) return;
     if (confirm(`Supprimer définitivement ${ids.size} mouvement(s) de la mémoire de travail ?`)) {
       vault.flows = vault.flows.filter(f => !ids.has(f.id));
+      vault.recurrences = vault.recurrences.filter(r => !ids.has(r.sourceFlowId));
       renderAll();
     }
   };
@@ -722,6 +784,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!vault.flows.length) return;
     if (confirm(`Supprimer les ${vault.flows.length} mouvements du coffre ? Cette action ne peut pas être annulée.`)) {
       vault.flows = [];
+      vault.recurrences = vault.recurrences.filter(r => !r.sourceFlowId);
       renderAll();
     }
   };
