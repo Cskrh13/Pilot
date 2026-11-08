@@ -1,0 +1,114 @@
+# PILOT v2 — Tableau de bord financier local avec import Excel
+
+## 🚀 Nouveautés de la version 2
+- **Gestion des catégories** : Ajoutez, renommez ou supprimez des catégories (appliqué à tous les flux existants).
+- **Import Excel** : Importez des données depuis un fichier .xlsx ou .csv (analyse statique côté client).
+- **Anonymisation renforcée** : Les libellés sont limités à 32 caractères et les catégories sont génériques.
+
+---
+
+## 📥 Lancer l'application
+1. Décompresser l'archive dans un dossier local.
+2. Ouvrir un terminal dans ce dossier.
+3. Lancer : `python -m http.server 8000`
+4. Ouvrir `http://localhost:8000` dans le navigateur.
+
+---
+
+## 🔐 Sécurité
+- **Chiffrement** : AES-256-GCM avec dérivation de clé PBKDF2/SHA-256 (310 000 itérations).
+- **Pas de stockage** : Les données sont en mémoire jusqu'à export/chiffrement.
+- **Pas de requêtes externes** : Tout fonctionne localement (y compris l'import Excel via SheetJS intégré).
+
+---
+---
+## 📊 Fonctionnement
+### Créer un coffre
+1. Saisissez une phrase secrète (16+ caractères).
+2. Cliquez sur *"Créer un coffre"*.
+
+### Ajouter des flux
+- **Manuellement** : Via le formulaire dans l'onglet *Flux financiers*.
+- **Depuis Excel** :
+  1. Cliquez sur *"Importer depuis Excel"*.
+  2. Sélectionnez un fichier `.xlsx` ou `.csv` avec les colonnes requises.
+  3. Validez l'import après prévisualisation.
+
+### Gérer les catégories
+1. Allez dans l'onglet *Catégories*.
+2. Ajoutez, renommez ou supprimez des catégories.
+   - **Renommer** : La modification s'applique à tous les flux et récurrences existants.
+   - **Supprimer** : Impossible si la catégorie est utilisée.
+
+---
+---
+## ⚠️ Limites
+- **Poste de confiance** : Un poste compromis ou une extension malveillante peut exposer les données affichées.
+- **Format Excel** : L'import nécessite un format strict (voir exemple ci-dessous).
+- **Pas d'IA** : L'analyse du fichier Excel est statique (pas de détection automatique de catégories).
+
+---
+---
+## 📋 Exemple de fichier Excel
+Pour importer des données, votre fichier Excel (ou CSV) doit contenir les colonnes suivantes :
+
+| Date       | Type    | Montant | Catégorie    | Libellé          |
+|------------|---------|---------|--------------|------------------|
+| 2026-11-01 | Dépense | 50.00   | Alimentation | Courses supermarché |
+| 2026-11-02 | Recette | 2000.00 | Revenus      | Salaire          |
+
+**Notes** :
+- Les colonnes `Catégorie` et `Libellé` sont optionnelles.
+- Le `Type` doit être soit *"Dépense"* (ou *"out"*), soit *"Recette"* (ou *"in"*).
+- Le `Montant` doit être un nombre (ex: `12.34` ou `12,34`).
+- La `Date` doit être au format `AAAA-MM-JJ` (ex: `2026-11-08`).
+
+---
+---
+## 🛠 Structure interne du coffre (après déchiffrement)
+```json
+{
+  "version": 2,
+  "createdAt": "2026-11-08T12:00:00.000Z",
+  "flows": [
+    {
+      "id": "identifiant-aléatoire-1",
+      "date": "2026-11-01",
+      "type": "out",
+      "amount": 50.00,
+      "category": "Alimentation",
+      "label": "Courses supermarché",
+      "recurrence": null
+    },
+    {
+      "id": "identifiant-aléatoire-2",
+      "date": "2026-11-02",
+      "type": "in",
+      "amount": 2000.00,
+      "category": "Revenus",
+      "label": "Salaire",
+      "recurrence": null
+    }
+  ],
+  "recurrences": [
+    {
+      "id": "identifiant-aléatoire-3",
+      "type": "out",
+      "amount": 800.00,
+      "category": "Logement",
+      "label": "Loyer",
+      "freq": "monthly",
+      "day": 5,
+      "start": "2026-11",
+      "end": null,
+      "active": true
+    }
+  ],
+  "categories": [
+    "Logement",
+    "Alimentation",
+    "Revenus",
+    "Santé",
+    "Banque"
+  ]
+}

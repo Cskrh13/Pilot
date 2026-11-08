@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <title>PILOT v2 — Finances du foyer</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+  <!-- Section Déverrouillage -->
+  <div id="unlock" class="shell">
+    <div class="card lock">
+      <div class="brand">
+        <div class="mark">P</div>
+        <div>
+          <h1>PILOT v2</h1>
+          <p>Tableau de bord financier local · Import Excel</p>
+        </div>
+      </div>
+      <h2 style="margin-top:26px">Ouvrir un coffre ou en créer un</h2>
+      <p>Les données restent dans cette page. Aucun enregistrement automatique.</p>
+      <div class="field">
+        <label for="pass">Mot de passe du coffre (16+ caractères)</label>
+        <input id="pass" type="password" autocomplete="new-password" placeholder="Phrase secrète longue">
+      </div>
+      <div class="actions">
+        <button id="newVault">Créer un coffre</button>
+        <button class="secondary" id="openVault">Ouvrir un fichier chiffré</button>
+        <input id="fileIn" type="file" accept=".json,application/json" class="hidden">
+      </div>
+      <p class="small" style="margin-top:18px">
+        Le mot de passe ne peut pas être récupéré. Conserve une copie du fichier chiffré.
+      </p>
+      <div id="unlockMsg" class="small red" role="status"></div>
+    </div>
+  </div>
+
+  <!-- Application principale -->
+  <div id="app" class="hidden">
+    <div class="shell">
+      <header class="top">
+        <div class="brand">
+          <div class="mark">P</div>
+          <div>
+            <h1>PILOT v2</h1>
+            <p>Vision financière du foyer · Import Excel · Stockage local chiffré</p>
+          </div>
+        </div>
+        <div class="actions">
+          <button class="secondary" id="exportBtn">Chiffrer & exporter</button>
+          <button class="secondary" id="importBtn">Ouvrir un autre coffre</button>
+          <button class="secondary" id="importExcelBtn">Importer depuis Excel</button>
+          <button class="danger" id="closeBtn">Fermer</button>
+        </div>
+      </header>
+
+      <nav class="nav" aria-label="Navigation">
+        <button class="active" data-tab="overview">Vue d'ensemble</button>
+        <button data-tab="flows">Flux financiers</button>
+        <button data-tab="recurring">Récurrences</button>
+        <button data-tab="forecast">Prévisions</button>
+        <button data-tab="categories">Catégories</button>
+      </nav>
+
+      <main>
+        <!-- Onglet Vue d'ensemble -->
+        <section id="tab-overview">
+          <div class="sectionhead">
+            <div>
+              <h2>Vue mensuelle</h2>
+              <div class="muted small">Lecture synthétique des entrées et sorties</div>
+            </div>
+            <div class="monthbar">
+              <button class="secondary" id="prevMonth" aria-label="Mois précédent">‹</button>
+              <input type="month" id="monthPick">
+              <button class="secondary" id="nextMonth" aria-label="Mois suivant">›</button>
+            </div>
+          </div>
+          <div class="grid" id="metrics"></div>
+          <div class="two section">
+            <div class="card">
+              <div class="sectionhead">
+                <h2>Répartition des dépenses</h2>
+                <span class="muted small">Mois sélectionné</span>
+              </div>
+              <div id="categoryBars" class="barlist"></div>
+            </div>
+            <div class="card">
+              <div class="sectionhead">
+                <h2>Lecture du mois</h2>
+              </div>
+              <div id="monthInsight"></div>
+            </div>
+          </div>
+          <div class="card section">
+            <div class="sectionhead">
+              <h2>Derniers mouvements</h2>
+              <button class="secondary" data-goto="flows">Voir les flux</button>
+            </div>
+            <div id="recent"></div>
+          </div>
+        </section>
+
+        <!-- Onglet Flux financiers -->
+        <section id="tab-flows" class="hidden">
+          <div class="sectionhead">
+            <div>
+              <h2>Flux financiers</h2>
+              <div class="muted small">Une ligne = une entrée ou une sortie</div>
+            </div>
+            <button id="addFlow">Ajouter un flux</button>
+          </div>
+          <div id="flowForm" class="card hidden">
+            <h2 style="font-size:16px;margin-top:0">Nouveau mouvement</h2>
+            <div class="formgrid">
+              <div class="field">
+                <label for="fDate">Date</label>
+                <input type="date" id="fDate">
+              </div>
+              <div class="field">
+                <label for="fType">Nature</label>
+                <select id="fType">
+                  <option value="out">Dépense</option>
+                  <option value="in">Recette</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="fAmount">Montant (€)</label>
+                <input type="number" id="fAmount" min="0.01" step="0.01" placeholder="0,00">
+              </div>
+              <div class="field">
+                <label for="fCategory">Catégorie</label>
+                <select id="fCategory"></select>
+              </div>
+              <div class="field">
+                <label for="fLabel">Libellé neutre (facultatif)</label>
+                <input id="fLabel" maxlength="32" placeholder="Ex. abonnement A">
+              </div>
+              <div class="field">
+                <label for="fRecurring">Récurrence</label>
+                <select id="fRecurring">
+                  <option value="">Aucune</option>
+                  <option value="monthly">Mensuelle</option>
+                  <option value="quarterly">Trimestrielle</option>
+                  <option value="yearly">Annuelle</option>
+                </select>
+              </div>
+            </div>
+            <div class="formactions">
+              <button class="secondary" id="cancelFlow">Annuler</button>
+              <button id="saveFlow">Ajouter au coffre en mémoire</button>
+            </div>
+          </div>
+          <div class="card section">
+            <div class="sectionhead">
+              <h2>Historique</h2>
+              <span class="muted small" id="flowCount"></span>
+            </div>
+            <div id="flowTable"></div>
+          </div>
+        </section>
+
+        <!-- Onglet Récurrences -->
+        <section id="tab-recurring" class="hidden">
+          <div class="sectionhead">
+            <div>
+              <h2>Engagements récurrents</h2>
+              <div class="muted small">Dépenses et recettes prévisibles</div>
+            </div>
+            <button id="addRule">Ajouter une récurrence</button>
+          </div>
+          <div class="notice">
+            Les récurrences servent à prévoir les mois à venir. Elles ne créent pas automatiquement de mouvements dans l'historique.
+          </div>
+          <div id="ruleForm" class="card section hidden">
+            <div class="formgrid">
+              <div class="field">
+                <label for="rType">Nature</label>
+                <select id="rType">
+                  <option value="out">Dépense</option>
+                  <option value="in">Recette</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="rAmount">Montant (€)</label>
+                <input type="number" id="rAmount" min="0.01" step="0.01">
+              </div>
+              <div class="field">
+                <label for="rCategory">Catégorie</label>
+                <select id="rCategory"></select>
+              </div>
+              <div class="field">
+                <label for="rLabel">Libellé neutre</label>
+                <input id="rLabel" maxlength="32" placeholder="Ex. abonnement A">
+              </div>
+              <div class="field">
+                <label for="rFreq">Fréquence</label>
+                <select id="rFreq">
+                  <option value="monthly">Mensuelle</option>
+                  <option value="quarterly">Trimestrielle</option>
+                  <option value="yearly">Annuelle</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="rDay">Jour du mois (1–28)</label>
+                <input type="number" id="rDay" min="1" max="28" value="5">
+              </div>
+              <div class="field">
+                <label for="rStart">À partir de</label>
+                <input type="month" id="rStart">
+              </div>
+              <div class="field">
+                <label for="rEnd">Jusqu'à (facultatif)</label>
+                <input type="month" id="rEnd">
+              </div>
+            </div>
+            <div class="formactions">
+              <button class="secondary" id="cancelRule">Annuler</button>
+              <button id="saveRule">Ajouter la récurrence</button>
+            </div>
+          </div>
+          <div class="card section">
+            <div id="ruleList"></div>
+          </div>
+        </section>
+
+        <!-- Onglet Prévisions -->
+        <section id="tab-forecast" class="hidden">
+          <div class="sectionhead">
+            <div>
+              <h2>Prévisions glissantes</h2>
+              <div class="muted small">Projection à partir des récurrences déclarées</div>
+            </div>
+            <select id="horizon" style="max-width:150px">
+              <option value="3">3 mois</option>
+              <option value="6" selected>6 mois</option>
+              <option value="12">12 mois</option>
+            </select>
+          </div>
+          <div class="grid" id="forecastMetrics"></div>
+          <div class="card section">
+            <div id="forecastTable"></div>
+          </div>
+          <div class="notice warning section">
+            Cette projection ne comprend que les récurrences saisies. Les dépenses variables (alimentation, loisirs, transport…) doivent être ajoutées sous forme d'enveloppes prévisionnelles dans une prochaine version.
+          </div>
+        </section>
+
+        <!-- NOUVEAU : Onglet Catégories -->
+        <section id="tab-categories" class="hidden">
+          <div class="sectionhead">
+            <h2>Gérer les catégories</h2>
+            <div class="muted small">Modifiez les catégories utilisées pour les flux et récurrences</div>
+          </div>
+          <div class="notice">
+            La modification d'une catégorie sera appliquée à <strong>tous les flux et récurrences existants</strong>.
+          </div>
+          <div class="card">
+            <div class="sectionhead">
+              <h3>Catégories existantes</h3>
+              <button id="addCategoryBtn" class="secondary">Ajouter une catégorie</button>
+            </div>
+            <div id="categoryList" class="barlist"></div>
+          </div>
+          <!-- Modale pour ajouter/modifier une catégorie -->
+          <div id="categoryModal" class="card hidden" style="max-width: 500px; margin: 5vh auto;">
+            <h3 id="modalTitle">Ajouter une catégorie</h3>
+            <div class="field">
+              <label for="newCategoryName">Nom de la catégorie</label>
+              <input type="text" id="newCategoryName" placeholder="Ex: Énergie">
+            </div>
+            <div class="field" id="replaceCategoryField" style="display: none;">
+              <label for="replaceCategorySelect">Remplacer la catégorie :</label>
+              <select id="replaceCategorySelect"></select>
+            </div>
+            <div class="formactions">
+              <button class="secondary" id="cancelCategory">Annuler</button>
+              <button id="saveCategory">Enregistrer</button>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <!-- Modale pour l'import Excel -->
+      <div id="importExcelModal" class="card hidden" style="max-width: 600px; margin: 5vh auto;">
+        <h2>Importer depuis Excel</h2>
+        <p>Sélectionnez un fichier <strong>.xlsx</strong> ou <strong>.csv</strong> avec les colonnes suivantes :</p>
+        <ul style="margin-left: 20px; font-size: 14px;">
+          <li><code>Date</code> (format AAAA-MM-JJ)</li>
+          <li><code>Type</code> ("Dépense" ou "Recette")</li>
+          <li><code>Montant</code> (nombre, ex: 12.34)</li>
+          <li><code>Catégorie</code> (optionnel, sinon "Autre")</li>
+          <li><code>Libellé</code> (optionnel, max 32 caractères)</li>
+        </ul>
+        <div class="field">
+          <label for="excelFile">Fichier Excel</label>
+          <input type="file" id="excelFile" accept=".xlsx,.xls,.csv">
+        </div>
+        <div id="excelPreview" style="margin-top: 20px; max-height: 300px; overflow-y: auto;"></div>
+        <div class="formactions" style="margin-top: 20px;">
+          <button class="secondary" id="cancelExcelImport">Annuler</button>
+          <button id="confirmExcelImport">Importer les données</button>
+        </div>
+      </div>
+
+      <div class="footer">
+        PILOT v2.0 · Fonctionnement local · Aucun stockage automatique · Aucun service externe
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
