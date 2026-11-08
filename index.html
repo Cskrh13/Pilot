@@ -41,7 +41,7 @@ dialog{border:0;border-radius:15px;padding:22px;max-width:440px;width:92vw;box-s
 <body>
 <div id="unlock" class="shell">
   <div class="card lock">
-    <div class="brand"><div class="mark">P</div><div><h1>PILOT</h1><p>Tableau de bord financier local · v2</p></div></div>
+    <div class="brand"><div class="mark">P</div><div><h1>PILOT</h1><p>Tableau de bord financier local · v3</p></div></div>
     <h2 style="margin-top:26px">Ouvrir un coffre ou en créer un</h2>
     <p>Les données restent dans cette page pendant son utilisation. Aucun enregistrement automatique n'est effectué.</p>
     <div class="field"><label for="pass">Phrase secrète du coffre (16 caractères minimum)</label><input id="pass" type="password" autocomplete="new-password" placeholder="Phrase secrète longue"></div>
@@ -109,10 +109,21 @@ dialog{border:0;border-radius:15px;padding:22px;max-width:440px;width:92vw;box-s
       <div class="card section"><div id="ruleList"></div></div>
     </section>
     <section id="tab-forecast" class="hidden">
-      <div class="sectionhead"><div><h2>Prévisions glissantes</h2><div class="muted small">Projection à partir des récurrences déclarées</div></div><select id="horizon" style="max-width:150px"><option value="3">3 mois</option><option value="6" selected>6 mois</option><option value="12">12 mois</option></select></div>
+      <div class="sectionhead"><div><h2>Budget &amp; dépense maximale</h2><div class="muted small">Mois en cours · calculs 100 % locaux, enregistrés dans le coffre chiffré</div></div></div>
+      <div class="card"><div class="formgrid" style="grid-template-columns:repeat(4,minmax(0,1fr))">
+        <div class="field"><label for="bIncome">Revenu mensuel moyen (€)</label><input id="bIncome" type="number" min="0" step="1" placeholder="auto"></div>
+        <div class="field"><label for="bSaving">Épargne cible par mois (€)</label><input id="bSaving" type="number" min="0" step="1" placeholder="0"></div>
+        <div class="field"><label for="bSafety">Seuil de sécurité (€)</label><input id="bSafety" type="number" min="0" step="1" placeholder="0"></div>
+        <div class="field"><label for="bCash">Solde disponible aujourd'hui (€)</label><input id="bCash" type="number" step="0.01" placeholder="à renseigner"></div>
+      </div><p class="small muted" style="margin:10px 0 0">Revenu laissé vide = estimé automatiquement. Le seuil de sécurité est le montant minimum que tu veux toujours garder sur tes comptes. Le solde est à mettre à jour de temps en temps.</p></div>
+      <div class="grid section" id="capMetrics"></div>
+      <div class="section" id="capDetail"></div>
+      <div class="sectionhead section"><div><h2>Prévisions &amp; enveloppes par catégorie</h2><div class="muted small" id="envSub"></div></div><div class="actions"><button class="secondary" id="envAuto">Enveloppes = prévision</button><button class="secondary" id="envReset">Réinitialiser</button></div></div>
+      <div class="card"><div id="envTable"></div></div>
+      <div class="sectionhead section"><div><h2>Projection glissante</h2><div class="muted small">Charges fixes (récurrences) + dépenses variables (enveloppes, ou médiane à défaut)</div></div><select id="horizon" style="max-width:150px"><option value="3">3 mois</option><option value="6" selected>6 mois</option><option value="12">12 mois</option></select></div>
       <div class="grid" id="forecastMetrics"></div>
       <div class="card section"><div id="forecastTable"></div></div>
-      <div class="notice warning section">Cette projection ne comprend que les récurrences saisies. Les dépenses variables (alimentation, loisirs, transport…) doivent être ajoutées sous forme d'enveloppes prévisionnelles dans une prochaine version.</div>
+      <div class="notice section">Recettes : récurrences déclarées, à défaut revenu mensuel moyen. Les dépenses variables restent constantes d'un mois à l'autre ; les dépenses exceptionnelles (travaux, achat ponctuel) ne sont pas anticipées.</div>
     </section>
     <section id="tab-cats" class="hidden">
       <div class="sectionhead"><div><h2>Catégories</h2><div class="muted small">Renommer, fusionner, ajouter ou supprimer. Toute modification s'applique à l'ensemble des mouvements et récurrences existants.</div></div></div>
@@ -177,7 +188,7 @@ function modal({title,text,fields=[],ok="Valider",danger=false}){
 /* ======================== Modèle du coffre ======================== */
 function normalizeVault(v){
   if(!v||typeof v!=="object"||!Array.isArray(v.flows)||!Array.isArray(v.recurrences))throw Error("Structure de données invalide.");
-  const out={version:2,createdAt:String(v.createdAt||new Date().toISOString()),categories:[],flows:[],recurrences:[],rules:[]};
+  const out={version:3,createdAt:String(v.createdAt||new Date().toISOString()),categories:[],flows:[],recurrences:[],rules:[]};
   const addCat=(name,kind)=>{name=cleanName(name);if(!name)return null;let c=out.categories.find(x=>nz(x.name)===nz(name));if(!c){c={name,kind:["in","out","both"].includes(kind)?kind:"out"};out.categories.push(c)}return c};
   if(Array.isArray(v.categories))v.categories.forEach(c=>typeof c==="string"?addCat(c,"out"):c&&addCat(c.name,c.kind));
   else DEFAULT_CATS.forEach(([n,k])=>addCat(n,k));
@@ -188,9 +199,14 @@ function normalizeVault(v){
     out.recurrences.push({id:String(r.id||uid()),type:r.type,amount:round2(a),category:ensure(r.category,r.type),label:String(r.label||"").slice(0,32),freq:r.freq,day:Math.min(28,Math.max(1,parseInt(r.day)||1)),start:r.start,end:/^\d{4}-\d{2}$/.test(r.end||"")?r.end:null,active:r.active!==false})});
   if(Array.isArray(v.rules))v.rules.forEach(r=>{if(r&&typeof r.k==="string"&&typeof r.c==="string"&&r.k.length<=40)out.rules.push({k:nz(r.k),c:ensure(r.c,"out")})});
   if(!out.categories.length)DEFAULT_CATS.forEach(([n,k])=>addCat(n,k));
+  const b=v.budget&&typeof v.budget==="object"?v.budget:{},pos=x=>{x=Number(x);return x>=0&&x<=1e9?round2(x):null};
+  out.budget={income:b.income!=null&&b.income!==""?pos(b.income):null,saving:pos(b.saving)||0,safety:pos(b.safety)||0,
+    cash:b.cash!=null&&b.cash!==""&&Number.isFinite(Number(b.cash))&&Math.abs(Number(b.cash))<=1e9?round2(Number(b.cash)):null,
+    cashDate:/^\d{4}-\d{2}-\d{2}$/.test(b.cashDate||"")?b.cashDate:null,envelopes:{}};
+  if(b.envelopes&&typeof b.envelopes==="object")Object.entries(b.envelopes).forEach(([k,x])=>{const c=out.categories.find(c=>nz(c.name)===nz(k)),a=pos(x);if(c&&a!==null)out.budget.envelopes[c.name]=a});
   return out;
 }
-function blankVault(){const v={version:2,createdAt:new Date().toISOString(),categories:[],flows:[],recurrences:[],rules:[]};DEFAULT_CATS.forEach(([name,kind])=>v.categories.push({name,kind}));return v}
+function blankVault(){const v={version:3,createdAt:new Date().toISOString(),categories:[],flows:[],recurrences:[],rules:[],budget:{income:null,saving:0,safety:0,cash:null,cashDate:null,envelopes:{}}};DEFAULT_CATS.forEach(([name,kind])=>v.categories.push({name,kind}));return v}
 const catByName=n=>vault.categories.find(c=>nz(c.name)===nz(n));
 const catsFor=type=>vault.categories.filter(c=>c.kind==="both"||c.kind===type);
 
@@ -282,10 +298,102 @@ function renderRecent(){$("recent").innerHTML=flowRows(flowsFor(selectedMonth),6
 const FREQ={monthly:"Mensuelle",quarterly:"Trimestrielle",yearly:"Annuelle"};
 function renderRules(){if(!vault.recurrences.length){$("ruleList").innerHTML='<div class="empty">Aucun engagement récurrent défini.</div>';return}
   $("ruleList").innerHTML=vault.recurrences.map(r=>`<div class="listitem"><div><strong>${safe(r.label||r.category)} <span class="pill ${r.type}">${r.type==="in"?"Recette":"Dépense"}</span></strong><small>${safe(r.category)} · ${FREQ[r.freq]} · jour ${r.day} · depuis ${safe(r.start)}${r.end?" · jusqu'à "+safe(r.end):""}</small></div><div style="display:flex;align-items:center;gap:10px"><strong>${mh(r.amount)}</strong><button class="danger" data-del-rule="${safe(r.id)}">Supprimer</button></div></div>`).join("")}
-function renderForecast(){const n=Number($("horizon").value),months=Array.from({length:n},(_,i)=>monthAdd(selectedMonth,i));let totals={in:0,out:0};
-  const rows=months.map(m=>{const r=recurringFor(m);totals.in+=r.in;totals.out+=r.out;return {m,...r}});
+/* ======================== v3 : budget, enveloppes, plafonds ======================== */
+const isSaving=n=>nz(n)==="epargne";
+const bud=()=>vault.budget||(vault.budget={income:null,saving:0,safety:0,cash:null,cashDate:null,envelopes:{}});
+const median=a=>{if(!a.length)return 0;const s=[...a].sort((x,y)=>x-y),h=s.length>>1;return s.length%2?s[h]:(s[h-1]+s[h])/2};
+const smooth=r=>r.freq==="monthly"?r.amount:r.freq==="quarterly"?r.amount/3:r.amount/12;
+const activeRec=(type,ym)=>vault.recurrences.filter(r=>r.active!==false&&r.type===type&&r.start<=ym&&(!r.end||r.end>=ym));
+const numOrNull=s=>{s=String(s).replace(",",".").trim();if(s==="")return null;const x=Number(s);return Number.isFinite(x)?x:NaN};
+const pctTxt=x=>Math.round(x*100)+" %";
+/* mois déjà clos et renseignés (jusqu'à 6) précédant ref */
+function histMonths(ref,max){const out=[];for(let i=1;i<=24&&out.length<max;i++){const m=monthAdd(ref,-i);if(flowsFor(m).length)out.push(m)}return out}
+const fixedFor=(cat,ym,maxDay)=>vault.recurrences.filter(r=>r.active!==false&&r.type==="out"&&r.category===cat&&due(r,ym)&&(maxDay===undefined||r.day<=maxDay)).reduce((s,r)=>s+r.amount,0);
+const outCat=(cat,ym)=>flowsFor(ym).reduce((s,f)=>f.type==="out"&&f.category===cat?s+f.amount:s,0);
+/* part variable historique = dépenses du mois − récurrences connues ; médiane (robuste aux mois exceptionnels) */
+function varForecast(cat,ym){const ms=histMonths(ym,6),v=ms.map(m=>Math.max(0,outCat(cat,m)-fixedFor(cat,m)));
+  return{n:v.length,med:round2(median(v)),lo:v.length?Math.min(...v):0,hi:v.length?Math.max(...v):0,last3:v.slice(0,3)}}
+function incomeEst(){const B=bud(),cur=monthNow();if(B.income!==null)return{v:B.income,src:"montant saisi"};
+  const h=histMonths(cur,6).map(m=>sum(flowsFor(m),"in")).filter(x=>x>0);
+  if(h.length>=3)return{v:round2(median(h)),src:"médiane des "+h.length+" derniers mois"};
+  const rec=activeRec("in",cur).reduce((s,r)=>s+smooth(r),0);
+  if(rec>0)return{v:round2(rec),src:"récurrences déclarées"};
+  if(h.length)return{v:round2(median(h)),src:"médiane sur "+h.length+" mois"};
+  return{v:0,src:"aucune donnée"}}
+const fixedSmoothed=()=>activeRec("out",monthNow()).filter(r=>!isSaving(r.category)).reduce((s,r)=>s+smooth(r),0);
+function catRow(c,ym){const B=bud(),cur=monthNow(),name=c.name,vf=varForecast(name,ym),fixed=fixedFor(name,ym),env=B.envelopes[name];
+  const bv=env!==undefined?env:vf.med,real=outCat(name,ym);
+  const rv=ym===cur?Math.max(0,real-fixedFor(name,ym,new Date().getDate())):null;
+  return{name,fixed,vf,env,bv,prev:fixed+vf.med,budget:fixed+bv,real,rv,over3:vf.last3.filter(x=>x>bv+0.005).length}}
+const visibleRows=ym=>vault.categories.filter(c=>c.kind!=="in"&&!isSaving(c.name)).map(c=>catRow(c,ym)).filter(r=>r.prev>0||r.real>0||r.env!==undefined);
+const calLine=(l,v,sg,strong)=>`<tr><td${strong?' style="font-weight:700"':""}>${l}</td><td class="num"${strong?' style="font-weight:700"':""}>${sg||""}${mh(v)}</td></tr>`;
+
+function renderBudget(){
+  const B=bud(),cur=monthNow(),now=new Date(),day=now.getDate(),dim=new Date(now.getFullYear(),now.getMonth()+1,0).getDate();
+  const inc=incomeEst(),fx=fixedSmoothed(),sv=B.saving||0,cap=inc.v-fx-sv;
+  const rows=visibleRows(cur),varBud=rows.reduce((s,r)=>s+r.bv,0),varLeft=rows.reduce((s,r)=>s+Math.max(0,r.bv-(r.rv||0)),0);
+  const incLeft=Math.max(0,inc.v-sum(flowsFor(cur),"in"));
+  const fixLeft=vault.recurrences.filter(r=>r.active!==false&&r.type==="out"&&!isSaving(r.category)&&due(r,cur)&&r.day>day).reduce((s,r)=>s+r.amount,0);
+  const saved=flowsFor(cur).filter(f=>f.type==="out"&&isSaving(f.category)).reduce((s,f)=>s+f.amount,0),savLeft=Math.max(0,sv-saved);
+  const hasCash=B.cash!==null,exc=hasCash?B.cash+incLeft-fixLeft-varLeft-savLeft-(B.safety||0):null;
+  const setv=(id,v)=>{const el=$(id);if(document.activeElement!==el)el.value=v===null||v===undefined?"":v};
+  setv("bIncome",B.income);setv("bSaving",B.saving||"");setv("bSafety",B.safety||"");setv("bCash",B.cash);
+  $("bIncome").placeholder=B.income===null&&inc.v>0?"auto : "+Math.round(inc.v)+" €":"auto";
+  $("capMetrics").innerHTML=[
+    ["Revenu mensuel moyen",inc.v,inc.src,"green"],
+    ["Charges fixes lissées",fx,"Récurrences ; annuelles ÷ 12, trimestrielles ÷ 3","red"],
+    ["Plafond mensuel structurel",cap,"Revenu − charges fixes − épargne cible",cap>=0?"green":"red"],
+    ["Dépense exceptionnelle supportable",exc,hasCash?"D'ici la fin du mois, seuil de sécurité préservé":"Renseigne ton solde disponible",hasCash?(exc>=0?"green":"red"):"amber"]
+  ].map(([a,b,c,d])=>`<div class="card metric"><small>${a}</small><strong class="${d}">${b===null?"—":mh(b)}</strong><em>${c}</em></div>`).join("");
+  const margin=cap-varBud,remDays=Math.max(1,dim-day+1);
+  const msg=inc.v<=0?'<div class="notice warning">Aucun revenu connu : saisis un revenu mensuel ou importe des mois comportant des recettes.</div>'
+    :margin<0?`<div class="notice warning">Tes enveloppes variables (${mh(varBud)}) dépassent le plafond de ${mh(-margin)} par mois : c'est là qu'il faut corriger en priorité.</div>`
+    :`<div class="notice okbox">Tes enveloppes variables tiennent sous le plafond, avec ${mh(margin)} de marge par mois.</div>`;
+  const stale=B.cashDate&&monthDiff(B.cashDate.slice(0,7),cur)>=0&&(new Date(todayStr())-new Date(B.cashDate))/864e5>7;
+  $("capDetail").innerHTML=`<div class="two"><div class="card"><div class="sectionhead"><h2>Plafond mensuel structurel</h2></div><table><tbody>
+    ${calLine("Revenu mensuel moyen",inc.v,"+")}${calLine("Charges fixes lissées",fx,"−")}${calLine("Épargne cible",sv,"−")}${calLine("Plafond pour les dépenses variables",cap,"",true)}
+    ${calLine("Enveloppes variables prévues (total)",varBud,"−")}${calLine("Marge structurelle",margin,"",true)}</tbody></table>
+    <div style="margin-top:12px">${msg}</div>
+    <p class="small muted" style="margin-bottom:0">Reste dans les enveloppes ce mois-ci : ${mh(varLeft)}, soit ${mh(varLeft/remDays)} par jour sur ${remDays} jour(s).</p></div>
+    <div class="card"><div class="sectionhead"><h2>Dépense exceptionnelle supportable</h2></div>${hasCash?`<table><tbody>
+    ${calLine("Solde disponible"+(B.cashDate?" (au "+B.cashDate.split("-").reverse().join("/")+")":""),B.cash,"")}${calLine("Recettes encore attendues ce mois-ci",incLeft,"+")}${calLine("Charges fixes restantes",fixLeft,"−")}${calLine("Dépenses variables restantes (enveloppes)",varLeft,"−")}${calLine("Épargne restant à mettre de côté",savLeft,"−")}${calLine("Seuil de sécurité",B.safety||0,"−")}${calLine("Montant supportable",exc,"",true)}</tbody></table>
+    ${exc<0?'<div class="notice warning" style="margin-top:12px">Tu passerais déjà sous ton seuil de sécurité d\'ici la fin du mois sans aucune dépense exceptionnelle.</div>':""}
+    ${stale?'<p class="small muted" style="margin-bottom:0">Ton solde date de plus de 7 jours : mets-le à jour pour que ce montant reste fiable.</p>':""}`
+    :'<div class="notice">Indique ton solde disponible (comptes courants, hors épargne bloquée) pour calculer ce montant.</div>'}</div></div>`}
+
+function renderEnvelopes(){
+  const ym=selectedMonth,cur=monthNow(),rows=visibleRows(ym).sort((a,b)=>b.budget-a.budget),now=new Date(),dim=new Date(now.getFullYear(),now.getMonth()+1,0).getDate();
+  const elapsed=ym===cur?now.getDate()/dim:null;
+  $("envSub").textContent="Mois affiché : "+monthLabel(ym)+" (se change depuis la Vue d'ensemble). Variable = médiane des mois passés hors récurrences.";
+  if(!rows.length){$("envTable").innerHTML='<div class="empty">Pas encore de dépenses ni de récurrences : importe un historique ou ajoute des flux.</div>';return}
+  const T={fixed:0,vp:0,bv:0,budget:0,real:0},watch=[];
+  const body=rows.map(r=>{T.fixed+=r.fixed;T.vp+=r.vf.med;T.bv+=r.bv;T.budget+=r.budget;T.real+=r.real;
+    let state="—",gap="—";
+    if(ym<=cur){const g=r.budget-r.real;gap=`<span class="${g>=0?"green":"red"}">${mh(g)}</span>`}
+    if(ym===cur){if(r.bv>0||r.rv>0){const used=r.bv>0?r.rv/r.bv:Infinity,txt=used===Infinity?"sans enveloppe":pctTxt(used)+" consommés";
+      if(used>1){state=`<span class="pill out">Dépassé</span> <small class="muted">${txt}</small>`;watch.push(r.name)}
+      else if(used>elapsed+0.1){state=`<span class="pill warn">En avance</span> <small class="muted">${txt} · mois à ${pctTxt(elapsed)}</small>`}
+      else state=`<span class="pill in">Dans le rythme</span> <small class="muted">${txt} · mois à ${pctTxt(elapsed)}</small>`}}
+    else if(ym<cur)state=r.real>r.budget+0.005?'<span class="pill out">Dépassé</span>':'<span class="pill in">Respecté</span>';
+    if(r.over3>=2&&!watch.includes(r.name))watch.push(r.name);
+    const rg=r.vf.n>=2?`${mh(r.vf.lo)} – ${mh(r.vf.hi)}`:(r.vf.n?"1 mois d'historique":"pas d'historique");
+    return `<tr><td><strong>${safe(r.name)}</strong></td><td class="num">${r.fixed?mh(r.fixed):"—"}</td><td class="num">${mh(r.vf.med)}<br><small class="muted">${rg}</small></td>
+      <td class="num"><input type="number" min="0" step="1" data-env="${safe(r.name)}" value="${r.env!==undefined?r.env:""}" placeholder="${Math.round(r.vf.med)}" aria-label="Enveloppe variable ${safe(r.name)}" style="max-width:105px;text-align:right"></td>
+      <td class="num">${mh(r.real)}</td><td class="num">${gap}</td><td>${state}</td>
+      <td class="num">${r.vf.last3.length?`<span class="pill ${r.over3>=2?"warn":""}">${r.over3}/${r.vf.last3.length}</span>`:"—"}</td></tr>`}).join("");
+  const tg=ym<=cur?T.budget-T.real:null;
+  $("envTable").innerHTML=`<div style="overflow-x:auto"><table><thead><tr><th>Catégorie</th><th style="text-align:right">Fixe prévu</th><th style="text-align:right">Variable prévu</th><th style="text-align:right">Enveloppe variable</th><th style="text-align:right">Réalisé</th><th style="text-align:right">Écart</th><th>Rythme</th><th style="text-align:right" title="Mois au-dessus de l'enveloppe parmi les 3 derniers">3 derniers mois</th></tr></thead><tbody>${body}
+    <tr style="font-weight:700"><td>Total</td><td class="num">${mh(T.fixed)}</td><td class="num">${mh(T.vp)}</td><td class="num">${mh(T.bv)}</td><td class="num">${mh(T.real)}</td><td class="num">${tg===null?"—":`<span class="${tg>=0?"green":"red"}">${mh(tg)}</span>`}</td><td></td><td></td></tr></tbody></table></div>
+    <p class="small muted">Écart = (fixe prévu + enveloppe) − réalisé : positif = marge, rouge = dépassement. « 3 derniers mois » compte les mois où la part variable a dépassé l'enveloppe actuelle. Les catégories « Épargne » sont exclues (elles relèvent de l'épargne cible).</p>
+    ${watch.length?`<div class="notice warning">À corriger en priorité : <strong>${watch.map(safe).join(", ")}</strong> (dépassées ce mois-ci, ou au-dessus de l'enveloppe au moins 2 des 3 derniers mois). Relève l'enveloppe si c'est un besoin réel, sinon change l'habitude.</div>`:""}`}
+
+function renderForecast(){renderBudget();renderEnvelopes();
+  const n=Number($("horizon").value),months=Array.from({length:n},(_,i)=>monthAdd(selectedMonth,i)),inc=incomeEst();
+  const V=visibleRows(selectedMonth).reduce((s,r)=>s+r.bv,0);let totals={in:0,out:0};
+  const recIn=months.reduce((s,m)=>s+recurringFor(m).in,0);
+  const rows=months.map(m=>{const r=recurringFor(m),rin=recIn>0?r.in:inc.v,rout=r.out+V;totals.in+=rin;totals.out+=rout;return{m,in:rin,fix:r.out,v:V,out:rout}});
   $("forecastMetrics").innerHTML=[["Recettes prévues",totals.in,"green"],["Dépenses prévues",totals.out,"red"],["Solde prévisionnel",totals.in-totals.out,totals.in>=totals.out?"green":"red"],["Moyenne mensuelle",(totals.out-totals.in)/n,"amber"]].map(x=>`<div class="card metric"><small>${x[0]}</small><strong class="${x[2]}">${mh(x[1])}</strong><em>${x[0]==="Moyenne mensuelle"?"Sorties nettes moyennes":n+" mois cumulés"}</em></div>`).join("");
-  $("forecastTable").innerHTML=`<div style="overflow-x:auto"><table><thead><tr><th>Mois</th><th style="text-align:right">Recettes prévues</th><th style="text-align:right">Dépenses prévues</th><th style="text-align:right">Solde prévu</th></tr></thead><tbody>${rows.map(r=>`<tr><td style="text-transform:capitalize">${monthLabel(r.m)}</td><td class="num green">${mh(r.in)}</td><td class="num red">${mh(r.out)}</td><td class="num ${(r.in-r.out)>=0?"green":"red"}">${mh(r.in-r.out)}</td></tr>`).join("")}</tbody></table></div>`}
+  $("forecastTable").innerHTML=`<div style="overflow-x:auto"><table><thead><tr><th>Mois</th><th style="text-align:right">Recettes prévues</th><th style="text-align:right">Charges fixes</th><th style="text-align:right">Dépenses variables</th><th style="text-align:right">Solde prévu</th></tr></thead><tbody>${rows.map(r=>`<tr><td style="text-transform:capitalize">${monthLabel(r.m)}</td><td class="num green">${mh(r.in)}</td><td class="num red">${mh(r.fix)}</td><td class="num red">${mh(r.v)}</td><td class="num ${(r.in-r.out)>=0?"green":"red"}">${mh(r.in-r.out)}</td></tr>`).join("")}</tbody></table></div>`}
 const KIND={out:"Dépenses",in:"Recettes",both:"Les deux"};
 function usage(name){const f=vault.flows.filter(x=>x.category===name);return{n:f.length,r:vault.recurrences.filter(x=>x.category===name).length,out:sum(f,"out"),in:sum(f,"in")}}
 function renderCats(){
@@ -297,7 +405,7 @@ function renderAll(skipTable){fillCats("fCategory",$("fType").value);fillCats("r
 function tab(name){document.querySelectorAll(".nav button").forEach(b=>b.classList.toggle("active",b.dataset.tab===name));["overview","flows","recurring","forecast","cats","import"].forEach(t=>$("tab-"+t).classList.toggle("hidden",t!==name))}
 
 /* ======================== Catégories : renommer, fusionner, supprimer ======================== */
-function reassign(from,to){vault.flows.forEach(f=>{if(f.category===from)f.category=to});vault.recurrences.forEach(r=>{if(r.category===from)r.category=to});vault.rules.forEach(r=>{if(r.c===from)r.c=to})}
+function reassign(from,to){{const E=bud().envelopes;if(E[from]!==undefined){if(E[to]===undefined&&to!==from)E[to]=E[from];delete E[from]}}vault.flows.forEach(f=>{if(f.category===from)f.category=to});vault.recurrences.forEach(r=>{if(r.category===from)r.category=to});vault.rules.forEach(r=>{if(r.c===from)r.c=to})}
 async function renameCat(old){
   const r=await modal({title:"Renommer « "+old+" »",text:"Le nouveau nom s'applique à tous les mouvements, récurrences et règles existants.",fields:[{name:"n",label:"Nouveau nom",value:old,max:32}],ok:"Renommer"});
   if(!r)return;const nn=cleanName(r.n);if(!nn||nn===old)return;
@@ -313,7 +421,7 @@ async function deleteCat(name){
     const r=await modal({title:"Supprimer « "+name+" »",text:u.n+" mouvement(s) et "+u.r+" récurrence(s) seront reclassés dans la catégorie choisie.",fields:[{name:"t",label:"Reclasser dans",type:"select",value:(others.find(c=>c.name==="Autre")||others[0]).name,options:others.map(c=>({value:c.name,label:c.name}))}],ok:"Supprimer",danger:true});
     if(!r)return;target=r.t}
   else if(!confirm("Supprimer la catégorie « "+name+" » ?"))return;
-  if(target)reassign(name,target);else vault.rules=vault.rules.filter(r=>r.c!==name);
+  delete bud().envelopes[name];if(target)reassign(name,target);else vault.rules=vault.rules.filter(r=>r.c!==name);
   vault.categories=vault.categories.filter(c=>c.name!==name);touch();renderAll();toast("Catégorie supprimée.")}
 function addCategory(){const n=cleanName($("cName").value);if(!n){toast("Saisis un nom de catégorie.");return}if(catByName(n)){toast("Cette catégorie existe déjà.");return}
   vault.categories.push({name:n,kind:$("cKind").value});$("cName").value="";touch();renderAll();toast("Catégorie ajoutée.")}
@@ -597,6 +705,15 @@ $("saveRule").onclick=()=>{const amount=Number($("rAmount").value),start=$("rSta
   vault.recurrences.push({id:uid(),type:$("rType").value,amount:round2(amount),category:$("rCategory").value,label:$("rLabel").value.trim(),freq:$("rFreq").value,day:Math.round(day),start,end:end||null,active:true});$("rAmount").value="";$("rLabel").value="";$("ruleForm").classList.add("hidden");touch();renderAll()};
 $("ruleList").onclick=e=>{const b=e.target.closest("[data-del-rule]");if(b&&confirm("Supprimer cette récurrence ?")){vault.recurrences=vault.recurrences.filter(r=>r.id!==b.dataset.delRule);touch();renderAll()}};
 $("horizon").onchange=renderForecast;
+[["bIncome","income",true],["bSaving","saving",false],["bSafety","safety",false],["bCash","cash",true]].forEach(([id,k,nul])=>$(id).onchange=()=>{const x=numOrNull($(id).value);
+  if(Number.isNaN(x)||(x!==null&&x<0&&k!=="cash")){toast("Montant invalide.");renderBudget();return}
+  const B=bud();B[k]=x===null?(nul?null:0):round2(x);if(k==="cash")B.cashDate=x===null?null:todayStr();touch();renderForecast()});
+$("envTable").onchange=e=>{const i=e.target.closest("[data-env]");if(!i)return;const x=numOrNull(i.value);
+  if(Number.isNaN(x)||(x!==null&&x<0)){toast("Montant invalide.");renderForecast();return}
+  if(x===null)delete bud().envelopes[i.dataset.env];else bud().envelopes[i.dataset.env]=round2(x);touch();renderForecast()};
+$("envAuto").onclick=()=>{const E=bud().envelopes;if(Object.keys(E).length&&!confirm("Remplacer les enveloppes déjà saisies par la prévision (médiane arrondie à 5 €) ?"))return;
+  visibleRows(selectedMonth).forEach(r=>{if(r.vf.med>0)E[r.name]=Math.round(r.vf.med/5)*5});touch();renderForecast();toast("Enveloppes alignées sur la prévision.")};
+$("envReset").onclick=()=>{if(!Object.keys(bud().envelopes).length)return;if(!confirm("Supprimer toutes les enveloppes ? Elles reviendront à la prévision."))return;vault.budget.envelopes={};touch();renderForecast()};
 $("addCat").onclick=addCategory;$("cName").addEventListener("keydown",e=>{if(e.key==="Enter")addCategory()});
 $("catTable").onclick=e=>{const r=e.target.closest("[data-ren]");if(r)return renameCat(r.dataset.ren);const d=e.target.closest("[data-delcat]");if(d)deleteCat(d.dataset.delcat)};
 $("catTable").onchange=e=>{const s=e.target.closest("[data-kind]");if(s){const c=vault.categories.find(x=>x.name===s.dataset.kind);if(c){c.kind=s.value;touch();renderAll()}}};

@@ -1,9 +1,19 @@
-# PILOT v2
+# PILOT v3
 
 ## Lancer
 1. Décompresser l'archive. 2. Dans ce dossier : `python serveur_local.py` (ou `python -m http.server 8000 --bind 127.0.0.1`).
 3. Ouvrir http://localhost:8000
 IMPORTANT : sans `--bind 127.0.0.1`, http.server est visible de tout le réseau local.
+
+## Nouveautés v3 : onglet Prévisions
+- Prévision par catégorie. Charges fixes : récurrences connues du mois. Dépenses variables : médiane des 3 à 6 derniers mois clos, hors récurrences, avec fourchette (mois bas – mois haut). Un mois exceptionnel ne fausse donc pas la prévision. Les catégories « Épargne » sont exclues.
+- Enveloppes mensuelles par catégorie variable (saisie directe ; vide = prévision). Tableau : fixe prévu, variable prévu, enveloppe, réalisé, écart (rouge si dépassement), rythme (part consommée vs part du mois écoulée) et nombre de dépassements sur les 3 derniers mois. Boutons « Enveloppes = prévision » (arrondi à 5 €) et « Réinitialiser ».
+- Plafond mensuel structurel = revenu mensuel moyen − charges fixes lissées (annuelles ÷ 12, trimestrielles ÷ 3) − épargne cible. Comparé au total des enveloppes variables : marge ou excédent.
+- Dépense exceptionnelle supportable (fin du mois en cours) = solde disponible + recettes encore attendues − charges fixes restantes − enveloppes variables restantes − épargne restant à mettre de côté − seuil de sécurité.
+- Paramètres à saisir : épargne cible, seuil de sécurité, solde disponible (à mettre à jour), revenu moyen (optionnel : sinon médiane des mois passés, à défaut récurrences).
+- Projection glissante : récurrences + dépenses variables.
+- Les paramètres et enveloppes sont stockés dans le coffre chiffré (champ « budget »). Les coffres v1 et v2 s'ouvrent normalement.
+- Hypothèses : une charge fixe dont le jour est dépassé est considérée comme déjà prélevée et saisie ; les dépenses exceptionnelles non récurrentes ne sont pas anticipées.
 
 ## Nouveautés v2
 - Catégories : ajouter, renommer (propagé à tous les mouvements, récurrences et règles), fusionner (renommer vers un nom existant), supprimer avec reclassement, choisir dépenses/recettes/les deux. Catégorie modifiable directement dans la liste des flux.
@@ -19,4 +29,4 @@ IMPORTANT : sans `--bind 127.0.0.1`, http.server est visible de tout le réseau 
 - Limites : poste compromis, extensions, captures d'écran ; le fichier tableur source n'est pas protégé par PILOT (à supprimer après import).
 
 ## Structure du coffre (déchiffré)
-{"version":2,"categories":[{"name":"Logement","kind":"out|in|both"}],"flows":[{id,date,type,amount,category,label,recurrence,src?}],"recurrences":[...],"rules":[{"k":"mot","c":"Catégorie"}]}
+{"version":3,"categories":[{"name":"Logement","kind":"out|in|both"}],"flows":[{id,date,type,amount,category,label,recurrence,src?}],"recurrences":[...],"rules":[{"k":"mot","c":"Catégorie"}],"budget":{"income":null,"saving":0,"safety":0,"cash":null,"cashDate":null,"envelopes":{"Catégorie":0}}}
