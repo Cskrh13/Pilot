@@ -11,6 +11,13 @@ IMPORTANT : sans `--bind 127.0.0.1`, http.server est visible de tout le réseau 
 - Plafond mensuel structurel = revenu mensuel moyen − charges fixes lissées (annuelles ÷ 12, trimestrielles ÷ 3) − épargne cible. Comparé au total des enveloppes variables : marge ou excédent.
 - Dépense exceptionnelle supportable (fin du mois en cours) = solde disponible + recettes encore attendues − charges fixes restantes − enveloppes variables restantes − épargne restant à mettre de côté − seuil de sécurité.
 - Paramètres à saisir : épargne cible, seuil de sécurité, solde disponible (à mettre à jour), revenu moyen (optionnel : sinon médiane des mois passés, à défaut récurrences).
+- Plus d'écran d'accueil : l'application s'ouvre directement sur un coffre vide en mémoire.
+- La phrase secrète est demandée à chaque « Chiffrer & exporter » (16 caractères minimum). Elle n'est jamais conservée : la clé n'est plus gardée en mémoire. Si tu as ouvert un coffre, la même phrase suffit ; pour en changer, saisis la nouvelle phrase deux fois.
+- « Ouvrir un coffre » : choix du fichier puis saisie de la phrase.
+- « Nettoyer le navigateur » : efface les données en mémoire, le stockage du site (cookies, stockage local, caches) et recharge la page vierge. Les fichiers déjà téléchargés (coffres, tableurs sources) restent à supprimer toi-même.
+- Flux financiers : colonnes Revenu et Dépense séparées, totaux et solde de la période en bas du tableau.
+- Navigation par période (Mois, 3, 6, 12 mois, et Tout dans Flux financiers) avec flèches ‹ › qui décalent la fenêtre. La période se termine au mois sélectionné (commun à tous les onglets). Dans Prévisions elle pilote le graphique et le tableau des catégories (fixe, variable et réalisé cumulés ; enveloppe saisie par mois).
+- Prévisions : graphique des pôles de dépense par catégorie (anneau de répartition + barres réalisé vs prévu).
 - Projection glissante : récurrences + dépenses variables.
 - Les paramètres et enveloppes sont stockés dans le coffre chiffré (champ « budget »). Les coffres v1 et v2 s'ouvrent normalement.
 - Hypothèses : une charge fixe dont le jour est dépassé est considérée comme déjà prélevée et saisie ; les dépenses exceptionnelles non récurrentes ne sont pas anticipées.
@@ -24,7 +31,7 @@ IMPORTANT : sans `--bind 127.0.0.1`, http.server est visible de tout le réseau 
 ## Sécurité
 - AES-256-GCM, PBKDF2-SHA-256 600 000 itérations, sel et IV aléatoires, en-tête authentifié. Les coffres v1 s'ouvrent et sont migrés.
 - Politique CSP : aucune requête réseau possible depuis la page. Aucun stockage navigateur.
-- La clé dérivée (non extractible) reste en mémoire pendant la session pour exporter sans ressaisie ; « Fermer » l'abandonne.
+- La clé n'est pas conservée : la phrase est redemandée à chaque export (nouveau sel à chaque export).
 - Les « règles mémorisées » sont chiffrées mais ne doivent contenir que des mots génériques.
 - Limites : poste compromis, extensions, captures d'écran ; le fichier tableur source n'est pas protégé par PILOT (à supprimer après import).
 

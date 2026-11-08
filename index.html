@@ -36,26 +36,18 @@ dialog{border:0;border-radius:15px;padding:22px;max-width:440px;width:92vw;box-s
 .priv .m{filter:blur(7px);user-select:none}
 @media(max-width:850px){.grid{grid-template-columns:repeat(2,1fr)}.two{grid-template-columns:1fr}.formgrid{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:560px){.shell{padding:14px}.top{align-items:flex-start;flex-direction:column}.grid{gap:9px}.card{padding:13px}.metric strong{font-size:21px}.formgrid{grid-template-columns:1fr}.barrow{grid-template-columns:85px 1fr 72px}.actions button{font-size:12px;padding:9px}.monthbar{width:100%}.monthbar input{flex:1}}
+.pernav{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#fff}.seg button{border-radius:0;background:#fff;color:var(--ink);padding:8px 13px;font-weight:600;border:0}.seg button+button{border-left:1px solid var(--line)}.seg button.on{background:var(--blue);color:#fff}.perlabel{text-transform:capitalize}
+.donutwrap{position:relative;width:190px;height:190px;margin:4px auto 10px}.donutwrap svg{width:100%;height:100%;transform:rotate(-90deg)}.donutc{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;pointer-events:none}.donutc strong{font-size:19px}.donutc small{color:var(--muted)}
+.leg{display:grid;gap:7px;font-size:13px}.leg div{display:grid;grid-template-columns:14px 1fr auto auto;gap:8px;align-items:center}.leg i{width:11px;height:11px;border-radius:3px;display:inline-block}.leg .pc{color:var(--muted);min-width:42px;text-align:right}
+.pbar{position:relative;height:10px;background:#edf0f4;border-radius:20px}.pbar b{display:block;height:100%;border-radius:20px}.pbar u{position:absolute;top:-3px;bottom:-3px;width:2px;background:#17212f;text-decoration:none}
 </style>
 </head>
 <body>
-<div id="unlock" class="shell">
-  <div class="card lock">
-    <div class="brand"><div class="mark">P</div><div><h1>PILOT</h1><p>Tableau de bord financier local · v3</p></div></div>
-    <h2 style="margin-top:26px">Ouvrir un coffre ou en créer un</h2>
-    <p>Les données restent dans cette page pendant son utilisation. Aucun enregistrement automatique n'est effectué.</p>
-    <div class="field"><label for="pass">Phrase secrète du coffre (16 caractères minimum)</label><input id="pass" type="password" autocomplete="new-password" placeholder="Phrase secrète longue"></div>
-    <div class="field"><label for="pass2">Confirmation (uniquement pour créer un coffre)</label><input id="pass2" type="password" autocomplete="new-password" placeholder="Saisir à nouveau la phrase secrète"></div>
-    <div class="actions"><button id="newVault">Créer un coffre</button><button class="secondary" id="openVault">Ouvrir un fichier chiffré</button><input id="fileIn" type="file" accept=".json,application/json" class="hidden"></div>
-    <p class="small" style="margin-top:18px">La phrase secrète ne peut pas être récupérée. Conserve une copie de sauvegarde du fichier chiffré.</p>
-    <div id="unlockMsg" class="small red" role="status"></div>
-  </div>
-</div>
-<div id="app" class="hidden">
+<div id="app">
 <div class="shell">
   <header class="top">
     <div class="brand"><div class="mark">P</div><div><h1>PILOT</h1><p>Vision financière du foyer · stockage local chiffré</p></div></div>
-    <div class="actions"><span id="dirty" class="badge hidden" role="status">● Modifications non exportées</span><button id="exportBtn">Chiffrer &amp; exporter</button><button class="secondary" id="importBtn">Ouvrir un autre coffre</button><button class="secondary" id="passBtn">Changer la phrase</button><button class="secondary" id="privBtn" aria-pressed="false">Masquer les montants</button><button class="danger" id="closeBtn">Fermer</button></div>
+    <div class="actions"><span id="dirty" class="badge hidden" role="status">● Modifications non exportées</span><button id="exportBtn">Chiffrer &amp; exporter</button><button class="secondary" id="importBtn">Ouvrir un coffre</button><button class="secondary" id="privBtn" aria-pressed="false">Masquer les montants</button><button class="danger" id="cleanBtn" title="Efface les données en mémoire et le stockage du navigateur">Nettoyer le navigateur</button><input id="fileIn" type="file" accept=".json,application/json" class="hidden"></div>
   </header>
   <nav class="nav" aria-label="Navigation">
     <button class="active" data-tab="overview">Vue d'ensemble</button><button data-tab="flows">Flux financiers</button><button data-tab="recurring">Récurrences</button><button data-tab="forecast">Prévisions</button><button data-tab="cats">Catégories</button><button data-tab="import">Importer</button>
@@ -86,7 +78,7 @@ dialog{border:0;border-radius:15px;padding:22px;max-width:440px;width:92vw;box-s
         <div class="formactions"><button class="secondary" id="cancelFlow">Annuler</button><button id="saveFlow">Ajouter au coffre en mémoire</button></div>
       </div>
       <div class="card section"><div class="sectionhead"><h2>Historique</h2><span class="muted small" id="flowCount"></span></div>
-        <div class="filters"><select id="flFilterMonth" aria-label="Période"><option value="all">Tous les mois</option><option value="sel">Mois sélectionné</option></select><select id="flFilterCat" aria-label="Catégorie"></select></div>
+        <div class="filters"><div id="flowNav"></div><select id="flFilterCat" aria-label="Catégorie"></select></div>
         <div id="flowTable"></div></div>
     </section>
     <section id="tab-recurring" class="hidden">
@@ -118,9 +110,11 @@ dialog{border:0;border-radius:15px;padding:22px;max-width:440px;width:92vw;box-s
       </div><p class="small muted" style="margin:10px 0 0">Revenu laissé vide = estimé automatiquement. Le seuil de sécurité est le montant minimum que tu veux toujours garder sur tes comptes. Le solde est à mettre à jour de temps en temps.</p></div>
       <div class="grid section" id="capMetrics"></div>
       <div class="section" id="capDetail"></div>
+      <div class="sectionhead section"><div><h2>Pôles de dépense par catégorie</h2><div class="muted small" id="polesSub"></div></div><div id="fcNav"></div></div>
+      <div class="two" id="poles"></div>
       <div class="sectionhead section"><div><h2>Prévisions &amp; enveloppes par catégorie</h2><div class="muted small" id="envSub"></div></div><div class="actions"><button class="secondary" id="envAuto">Enveloppes = prévision</button><button class="secondary" id="envReset">Réinitialiser</button></div></div>
       <div class="card"><div id="envTable"></div></div>
-      <div class="sectionhead section"><div><h2>Projection glissante</h2><div class="muted small">Charges fixes (récurrences) + dépenses variables (enveloppes, ou médiane à défaut)</div></div><select id="horizon" style="max-width:150px"><option value="3">3 mois</option><option value="6" selected>6 mois</option><option value="12">12 mois</option></select></div>
+      <div class="sectionhead section"><div><h2>Projection glissante</h2><div class="muted small">Charges fixes (récurrences) + dépenses variables (enveloppes, ou médiane à défaut)</div></div><select id="horizon" style="max-width:150px"><option value="1">1 mois</option><option value="3">3 mois</option><option value="6" selected>6 mois</option><option value="12">12 mois</option></select></div>
       <div class="grid" id="forecastMetrics"></div>
       <div class="card section"><div id="forecastTable"></div></div>
       <div class="notice section">Recettes : récurrences déclarées, à défaut revenu mensuel moyen. Les dépenses variables restent constantes d'un mois à l'autre ; les dépenses exceptionnelles (travaux, achat ponctuel) ne sont pas anticipées.</div>
@@ -157,7 +151,7 @@ const DEFAULT_CATS=[["Logement","out"],["Alimentation","out"],["Santé","out"],[
 const pad=n=>String(n).padStart(2,"0");
 const monthNow=()=>{const d=new Date();return d.getFullYear()+"-"+pad(d.getMonth()+1)};
 const todayStr=()=>{const d=new Date();return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate())};
-let vault=null, session=null, dirty=false, selectedMonth=monthNow(), imp=null;
+let vault=null, lastFile=null, dirty=false, selectedMonth=monthNow(), imp=null;
 const money=n=>new Intl.NumberFormat("fr-FR",{style:"currency",currency:"EUR"}).format(Number(n)||0);
 const mh=n=>`<span class="m">${money(n)}</span>`;
 function uid(){return crypto.randomUUID?crypto.randomUUID():String(Date.now())+Math.random().toString(16).slice(2)}
@@ -215,12 +209,10 @@ function deriveKey(pw,salt,iter){return crypto.subtle.importKey("raw",enc.encode
 function b64(buf){const u=new Uint8Array(buf);let s="";for(let i=0;i<u.length;i+=0x8000)s+=String.fromCharCode.apply(null,u.subarray(i,i+0x8000));return btoa(s)}
 function un64(s){return Uint8Array.from(atob(s),c=>c.charCodeAt(0))}
 const aad=(iter,salt)=>enc.encode("PILOT|2|"+iter+"|"+salt);
-async function newSession(pw){const salt=crypto.getRandomValues(new Uint8Array(16));return {key:await deriveKey(pw,salt,ITER),salt,iter:ITER}}
-async function encryptVault(){
-  if(!session)throw Error("session verrouillée.");
-  const iv=crypto.getRandomValues(new Uint8Array(12)),saltB=b64(session.salt);
-  const cipher=await crypto.subtle.encrypt({name:"AES-GCM",iv,additionalData:aad(session.iter,saltB)},session.key,enc.encode(JSON.stringify(vault)));
-  return {app:"PILOT",format:2,kdf:"PBKDF2-SHA-256",iterations:session.iter,cipher:"AES-256-GCM",salt:saltB,iv:b64(iv),data:b64(cipher)};
+async function encryptVault(pw){
+  const salt=crypto.getRandomValues(new Uint8Array(16)),key=await deriveKey(pw,salt,ITER),iv=crypto.getRandomValues(new Uint8Array(12)),saltB=b64(salt);
+  const cipher=await crypto.subtle.encrypt({name:"AES-GCM",iv,additionalData:aad(ITER,saltB)},key,enc.encode(JSON.stringify(vault)));
+  return {app:"PILOT",format:2,kdf:"PBKDF2-SHA-256",iterations:ITER,cipher:"AES-256-GCM",salt:saltB,iv:b64(iv),data:b64(cipher)};
 }
 async function decryptVault(obj,pw){
   if(!obj||obj.app!=="PILOT"||![1,2].includes(obj.format))throw Error("Format de coffre non reconnu.");
@@ -232,31 +224,49 @@ async function decryptVault(obj,pw){
 }
 function download(obj){const blob=new Blob([JSON.stringify(obj,null,2)],{type:"application/json"});const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download="pilot-coffre-"+todayStr()+".json";document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)}
 
-/* ======================== Écran de verrouillage ======================== */
-function showUnlock(msg=""){$("unlock").classList.remove("hidden");$("app").classList.add("hidden");$("unlockMsg").textContent=msg}
-function showApp(){$("unlock").classList.add("hidden");$("app").classList.remove("hidden");$("monthPick").value=selectedMonth;imp=null;resetImportUI();updDirty();tab("overview");renderAll()}
-async function createVault(){
-  const p=$("pass").value;
-  if(!crypto||!crypto.subtle){$("unlockMsg").textContent="Web Crypto indisponible. Ouvre l'application depuis localhost (voir le guide).";return}
-  if(p.length<16){$("unlockMsg").textContent="Utilise au moins 16 caractères pour la phrase secrète.";return}
-  if(p!==$("pass2").value){$("unlockMsg").textContent="Les deux phrases secrètes ne correspondent pas.";return}
-  $("unlockMsg").textContent="Dérivation de la clé…";
-  session=await newSession(p);vault=blankVault();dirty=true;selectedMonth=monthNow();$("pass").value="";$("pass2").value="";showApp();
-}
+/* ======================== Démarrage, ouverture, export ======================== */
+function showApp(){$("monthPick").value=selectedMonth;imp=null;resetImportUI();updDirty();tab("overview");renderAll()}
 async function importFile(file){
   try{
     if(!file)return;
-    const p=$("pass").value;if(p.length<16)throw Error("Saisis la phrase secrète (16 caractères minimum).");
     if(file.size>60*1024*1024)throw Error("Fichier trop volumineux.");
-    if(vault&&dirty&&!confirm("Des modifications n'ont pas été exportées. Les abandonner et ouvrir un autre coffre ?"))return;
-    $("unlockMsg").textContent="Déchiffrement…";
-    const r=await decryptVault(JSON.parse(await file.text()),p);
-    vault=r.vault;dirty=false;
-    if(r.legacy){session=await newSession(p);dirty=true;toast("Coffre ancien format migré en mémoire : exporte-le pour finaliser la mise à niveau.")}
-    else session={key:r.key,salt:r.salt,iter:r.iter};
-    selectedMonth=monthNow();$("pass").value="";$("pass2").value="";showApp();
-  }catch(e){const m="Ouverture impossible : "+e.message;if($("app").classList.contains("hidden"))$("unlockMsg").textContent=m;else toast(m)}
+    const obj=JSON.parse(await file.text());
+    const r=await modal({title:"Ouvrir un coffre",text:"Saisis la phrase secrète de ce fichier.",fields:[{name:"p",label:"Phrase secrète",type:"password"}],ok:"Ouvrir"});
+    if(!r)return;
+    if(!r.p)throw Error("phrase secrète vide.");
+    toast("Déchiffrement…");
+    const res=await decryptVault(obj,r.p);
+    vault=res.vault;lastFile=obj;dirty=false;
+    if(res.legacy){dirty=true;toast("Coffre ancien format migré en mémoire : exporte-le pour finaliser la mise à niveau.")}
+    selectedMonth=monthNow();showApp();
+  }catch(e){toast("Ouverture impossible : "+e.message)}
   finally{$("fileIn").value=""}
+}
+async function exportVault(){
+  if(!crypto||!crypto.subtle){toast("Web Crypto indisponible. Ouvre l'application depuis localhost (voir le guide).");return}
+  const r=await modal({title:"Chiffrer & exporter",text:"Saisis la phrase secrète qui protégera ce fichier (16 caractères minimum). Elle n'est pas conservée et ne peut pas être récupérée.",
+    fields:[{name:"p",label:"Phrase secrète",type:"password"},{name:"c",label:lastFile?"Confirmation (inutile si c'est la phrase du coffre ouvert)":"Confirmation",type:"password"}],ok:"Chiffrer & télécharger"});
+  if(!r)return;
+  try{
+    if(r.p.length<16)throw Error("16 caractères minimum.");
+    let same=false;
+    if(lastFile){toast("Vérification de la phrase…");try{await decryptVault(lastFile,r.p);same=true}catch{}}
+    if(!same&&r.p!==r.c)throw Error(lastFile?"cette phrase diffère de celle du coffre ouvert : confirme-la dans le second champ pour la changer.":"les deux saisies ne correspondent pas.");
+    toast("Chiffrement…");
+    const obj=await encryptVault(r.p);download(obj);lastFile=obj;dirty=false;updDirty();
+    toast("Coffre chiffré téléchargé. Remplace ta sauvegarde précédente.");
+  }catch(e){toast("Export impossible : "+e.message)}
+}
+async function cleanBrowser(){
+  const r=await modal({title:"Nettoyer le navigateur",text:"Efface les données en mémoire (coffre, import en cours), le stockage du site (cookies, stockage local, caches) puis recharge la page vierge."+(dirty?" Attention : des modifications non exportées seront perdues.":"")+" Les fichiers déjà téléchargés (coffres, tableurs sources) ne sont pas supprimés : à effacer toi-même.",fields:[],ok:"Tout effacer",danger:true});
+  if(!r)return;
+  vault=null;lastFile=null;imp=null;dirty=false;
+  try{localStorage.clear()}catch{}try{sessionStorage.clear()}catch{}
+  try{if(indexedDB.databases){for(const d of await indexedDB.databases())if(d.name)indexedDB.deleteDatabase(d.name)}}catch{}
+  try{if(window.caches){for(const k of await caches.keys())await caches.delete(k)}}catch{}
+  try{if(navigator.serviceWorker){for(const g of await navigator.serviceWorker.getRegistrations())await g.unregister()}}catch{}
+  try{document.cookie.split(";").forEach(c=>{const n=c.split("=")[0].trim();if(n)document.cookie=n+"=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/"})}catch{}
+  document.body.innerHTML="";location.reload()
 }
 
 /* ======================== Calculs ======================== */
@@ -290,10 +300,11 @@ function flowRows(arr,limit,editable){
   const sorted=[...arr].sort((a,b)=>b.date.localeCompare(a.date)),shown=sorted.slice(0,limit||sorted.length);
   if(!sorted.length)return '<div class="empty">Aucun mouvement à afficher.</div>';
   const opts=sel=>vault.categories.map(c=>`<option value="${safe(c.name)}"${c.name===sel?" selected":""}>${safe(c.name)}</option>`).join("");
-  return `<div style="overflow-x:auto"><table><thead><tr><th>Date</th><th>Nature</th><th>Catégorie</th><th>Libellé</th><th style="text-align:right">Montant</th><th></th></tr></thead><tbody>${shown.map(f=>`<tr><td>${safe(f.date)}</td><td><span class="pill ${f.type}">${f.type==="in"?"Recette":"Dépense"}</span></td><td>${editable?`<select data-flow-cat="${safe(f.id)}" aria-label="Catégorie">${opts(f.category)}</select>`:safe(f.category)}</td><td>${safe(f.label||"—")}</td><td class="num ${f.type==="in"?"green":"red"}">${f.type==="in"?"+":"−"}${mh(f.amount)}</td><td><button class="danger" style="padding:5px 8px" data-del-flow="${safe(f.id)}" aria-label="Supprimer">×</button></td></tr>`).join("")}</tbody></table></div>${sorted.length>shown.length?`<p class="small muted">${shown.length} lignes affichées sur ${sorted.length} — affine les filtres pour voir les autres.</p>`:""}`}
+  const tin=sum(sorted,"in"),tout=sum(sorted,"out"),bal=tin-tout;
+  return `<div style="overflow-x:auto"><table><thead><tr><th>Date</th><th>Catégorie</th><th>Libellé</th><th style="text-align:right">Revenu</th><th style="text-align:right">Dépense</th><th></th></tr></thead><tbody>${shown.map(f=>`<tr><td>${safe(f.date)}</td><td>${editable?`<select data-flow-cat="${safe(f.id)}" aria-label="Catégorie">${opts(f.category)}</select>`:safe(f.category)}</td><td>${safe(f.label||"—")}</td><td class="num green">${f.type==="in"?"+"+mh(f.amount):""}</td><td class="num red">${f.type==="out"?"−"+mh(f.amount):""}</td><td><button class="danger" style="padding:5px 8px" data-del-flow="${safe(f.id)}" aria-label="Supprimer">×</button></td></tr>`).join("")}</tbody>${editable?`<tfoot><tr style="font-weight:700"><td colspan="3">Total · ${sorted.length} mouvement(s)</td><td class="num green">+${mh(tin)}</td><td class="num red">−${mh(tout)}</td><td></td></tr><tr style="font-weight:700"><td colspan="3">Solde de la période</td><td colspan="2" class="num ${bal>=0?"green":"red"}">${mh(bal)}</td><td></td></tr></tfoot>`:""}</table></div>${sorted.length>shown.length?`<p class="small muted">${shown.length} lignes affichées sur ${sorted.length} — réduis la période ou filtre par catégorie pour voir les autres (les totaux portent sur toutes les lignes).</p>`:""}`}
 function fillFilter(){const sel=$("flFilterCat"),cur=sel.value;sel.innerHTML='<option value="">Toutes les catégories</option>'+vault.categories.map(c=>`<option value="${safe(c.name)}">${safe(c.name)}</option>`).join("");sel.value=vault.categories.some(c=>c.name===cur)?cur:""}
-function renderFlowTable(){let arr=vault.flows;if($("flFilterMonth").value==="sel")arr=arr.filter(f=>f.date.slice(0,7)===selectedMonth);const fc=$("flFilterCat").value;if(fc)arr=arr.filter(f=>f.category===fc);
-  $("flowCount").textContent=arr.length+" / "+vault.flows.length+" mouvement(s)";$("flowTable").innerHTML=flowRows(arr,300,true)}
+function renderFlowTable(){let arr=vault.flows;if(period){const ws=new Set(winMonths(selectedMonth,period));arr=arr.filter(f=>ws.has(f.date.slice(0,7)))}const fc=$("flFilterCat").value;if(fc)arr=arr.filter(f=>f.category===fc);
+  $("flowCount").textContent=arr.length+" / "+vault.flows.length+" mouvement(s) · "+(period?winLabel(period):"tous les mois");$("flowTable").innerHTML=flowRows(arr,500,true)}
 function renderRecent(){$("recent").innerHTML=flowRows(flowsFor(selectedMonth),6,false)}
 const FREQ={monthly:"Mensuelle",quarterly:"Trimestrielle",yearly:"Annuelle"};
 function renderRules(){if(!vault.recurrences.length){$("ruleList").innerHTML='<div class="empty">Aucun engagement récurrent défini.</div>';return}
@@ -321,11 +332,23 @@ function incomeEst(){const B=bud(),cur=monthNow();if(B.income!==null)return{v:B.
   if(h.length)return{v:round2(median(h)),src:"médiane sur "+h.length+" mois"};
   return{v:0,src:"aucune donnée"}}
 const fixedSmoothed=()=>activeRec("out",monthNow()).filter(r=>!isSaving(r.category)).reduce((s,r)=>s+smooth(r),0);
-function catRow(c,ym){const B=bud(),cur=monthNow(),name=c.name,vf=varForecast(name,ym),fixed=fixedFor(name,ym),env=B.envelopes[name];
-  const bv=env!==undefined?env:vf.med,real=outCat(name,ym);
-  const rv=ym===cur?Math.max(0,real-fixedFor(name,ym,new Date().getDate())):null;
-  return{name,fixed,vf,env,bv,prev:fixed+vf.med,budget:fixed+bv,real,rv,over3:vf.last3.filter(x=>x>bv+0.005).length}}
-const visibleRows=ym=>vault.categories.filter(c=>c.kind!=="in"&&!isSaving(c.name)).map(c=>catRow(c,ym)).filter(r=>r.prev>0||r.real>0||r.env!==undefined);
+let period=1;
+const effN=()=>period||12;
+const winMonths=(ym,N)=>Array.from({length:N},(_,i)=>monthAdd(ym,-(N-1-i)));
+const winLabel=N=>N===1?monthLabel(selectedMonth):monthLabel(monthAdd(selectedMonth,-(N-1)))+" → "+monthLabel(selectedMonth);
+function navHTML(withAll){const cur=withAll?period:effN(),opts=[[1,"Mois"],[3,"3 mois"],[6,"6 mois"],[12,"12 mois"]].concat(withAll?[[0,"Tout"]]:[]);
+  return `<div class="pernav"><button class="secondary" data-pshift="-1" aria-label="Période précédente">‹</button><div class="seg" role="group" aria-label="Durée affichée">${opts.map(([v,l])=>`<button data-per="${v}" class="${cur===v?"on":""}" aria-pressed="${cur===v}">${l}</button>`).join("")}</div><button class="secondary" data-pshift="1" aria-label="Période suivante">›</button><span class="small muted perlabel">${withAll&&!period?"Tous les mois":winLabel(effN())}</span></div>`}
+function renderNav(){$("flowNav").innerHTML=navHTML(true);$("fcNav").innerHTML=navHTML(false)}
+/* ligne de catégorie sur une fenêtre de N mois se terminant à ym */
+function catRowN(c,ym,N){const B=bud(),cur=monthNow(),name=c.name,env=B.envelopes[name],ms=winMonths(ym,N);
+  let fixed=0,vp=0,bv=0,real=0,lo=0,hi=0,n=0,rvA=0;const perm=[];
+  ms.forEach(m=>{const vf=varForecast(name,m),f=fixedFor(name,m),b=env!==undefined?env:vf.med,r=outCat(name,m);
+    fixed+=f;vp+=vf.med;bv+=b;real+=r;lo+=vf.lo;hi+=vf.hi;n=Math.max(n,vf.n);if(m<cur){perm.push(Math.max(0,r-f)>b+0.005);rvA+=Math.max(0,r-f)}else if(m===cur)rvA+=Math.max(0,r-fixedFor(name,m,new Date().getDate()))});
+  const last3=N===1?varForecast(name,ym).last3:null,rv=ym===cur?rvA:null;
+  const over=N===1?last3.filter(x=>x>bv+0.005).length:perm.filter(Boolean).length,overDen=N===1?last3.length:perm.length;
+  return{name,fixed,vf:{med:round2(vp),lo,hi,n,last3},env,bv,prev:fixed+vp,budget:fixed+bv,real,rv,over,overDen}}
+const catRow=(c,ym)=>catRowN(c,ym,1);
+const visibleRows=(ym,N=1)=>vault.categories.filter(c=>c.kind!=="in"&&!isSaving(c.name)).map(c=>catRowN(c,ym,N)).filter(r=>r.prev>0||r.real>0||r.env!==undefined);
 const calLine=(l,v,sg,strong)=>`<tr><td${strong?' style="font-weight:700"':""}>${l}</td><td class="num"${strong?' style="font-weight:700"':""}>${sg||""}${mh(v)}</td></tr>`;
 
 function renderBudget(){
@@ -362,32 +385,51 @@ function renderBudget(){
     :'<div class="notice">Indique ton solde disponible (comptes courants, hors épargne bloquée) pour calculer ce montant.</div>'}</div></div>`}
 
 function renderEnvelopes(){
-  const ym=selectedMonth,cur=monthNow(),rows=visibleRows(ym).sort((a,b)=>b.budget-a.budget),now=new Date(),dim=new Date(now.getFullYear(),now.getMonth()+1,0).getDate();
-  const elapsed=ym===cur?now.getDate()/dim:null;
-  $("envSub").textContent="Mois affiché : "+monthLabel(ym)+" (se change depuis la Vue d'ensemble). Variable = médiane des mois passés hors récurrences.";
+  const ym=selectedMonth,cur=monthNow(),N=effN(),rows=visibleRows(ym,N).sort((a,b)=>b.budget-a.budget),now=new Date(),dim=new Date(now.getFullYear(),now.getMonth()+1,0).getDate();
+  const elapsed=ym===cur?now.getDate()/dim:null,elW=elapsed===null?null:(N-1+elapsed)/N;
+  $("envSub").textContent=(N===1?monthLabel(ym):N+" mois jusqu'à "+monthLabel(ym))+" · Variable = médiane des mois passés hors récurrences ; l'enveloppe se saisit par mois.";
   if(!rows.length){$("envTable").innerHTML='<div class="empty">Pas encore de dépenses ni de récurrences : importe un historique ou ajoute des flux.</div>';return}
   const T={fixed:0,vp:0,bv:0,budget:0,real:0},watch=[];
+  const pace=(used,ref)=>{const txt=used===Infinity?"sans enveloppe":pctTxt(used)+" consommés";
+    if(used>1)return{h:`<span class="pill out">Dépassé</span> <small class="muted">${txt}</small>`,bad:true};
+    if(used>ref+0.1)return{h:`<span class="pill warn">En avance</span> <small class="muted">${txt} · période à ${pctTxt(ref)}</small>`};
+    return{h:`<span class="pill in">Dans le rythme</span> <small class="muted">${txt} · période à ${pctTxt(ref)}</small>`}};
   const body=rows.map(r=>{T.fixed+=r.fixed;T.vp+=r.vf.med;T.bv+=r.bv;T.budget+=r.budget;T.real+=r.real;
     let state="—",gap="—";
     if(ym<=cur){const g=r.budget-r.real;gap=`<span class="${g>=0?"green":"red"}">${mh(g)}</span>`}
-    if(ym===cur){if(r.bv>0||r.rv>0){const used=r.bv>0?r.rv/r.bv:Infinity,txt=used===Infinity?"sans enveloppe":pctTxt(used)+" consommés";
-      if(used>1){state=`<span class="pill out">Dépassé</span> <small class="muted">${txt}</small>`;watch.push(r.name)}
-      else if(used>elapsed+0.1){state=`<span class="pill warn">En avance</span> <small class="muted">${txt} · mois à ${pctTxt(elapsed)}</small>`}
-      else state=`<span class="pill in">Dans le rythme</span> <small class="muted">${txt} · mois à ${pctTxt(elapsed)}</small>`}}
+    if(ym===cur){const full={b:r.bv,v:r.rv,ref:N===1?elapsed:elW};
+      if(full.b>0||full.v>0){const p=pace(full.b>0?full.v/full.b:Infinity,full.ref);state=p.h;if(p.bad)watch.push(r.name)}}
     else if(ym<cur)state=r.real>r.budget+0.005?'<span class="pill out">Dépassé</span>':'<span class="pill in">Respecté</span>';
-    if(r.over3>=2&&!watch.includes(r.name))watch.push(r.name);
+    if(r.overDen>=2&&r.over>=2&&r.over/r.overDen>=0.5&&!watch.includes(r.name))watch.push(r.name);
     const rg=r.vf.n>=2?`${mh(r.vf.lo)} – ${mh(r.vf.hi)}`:(r.vf.n?"1 mois d'historique":"pas d'historique");
     return `<tr><td><strong>${safe(r.name)}</strong></td><td class="num">${r.fixed?mh(r.fixed):"—"}</td><td class="num">${mh(r.vf.med)}<br><small class="muted">${rg}</small></td>
-      <td class="num"><input type="number" min="0" step="1" data-env="${safe(r.name)}" value="${r.env!==undefined?r.env:""}" placeholder="${Math.round(r.vf.med)}" aria-label="Enveloppe variable ${safe(r.name)}" style="max-width:105px;text-align:right"></td>
+      <td class="num"><input type="number" min="0" step="1" data-env="${safe(r.name)}" value="${r.env!==undefined?r.env:""}" placeholder="${Math.round(r.vf.med/N)}" aria-label="Enveloppe variable mensuelle ${safe(r.name)}" style="max-width:105px;text-align:right"></td>
       <td class="num">${mh(r.real)}</td><td class="num">${gap}</td><td>${state}</td>
-      <td class="num">${r.vf.last3.length?`<span class="pill ${r.over3>=2?"warn":""}">${r.over3}/${r.vf.last3.length}</span>`:"—"}</td></tr>`}).join("");
+      <td class="num">${r.overDen?`<span class="pill ${r.over>=2?"warn":""}">${r.over}/${r.overDen}</span>`:"—"}</td></tr>`}).join("");
   const tg=ym<=cur?T.budget-T.real:null;
-  $("envTable").innerHTML=`<div style="overflow-x:auto"><table><thead><tr><th>Catégorie</th><th style="text-align:right">Fixe prévu</th><th style="text-align:right">Variable prévu</th><th style="text-align:right">Enveloppe variable</th><th style="text-align:right">Réalisé</th><th style="text-align:right">Écart</th><th>Rythme</th><th style="text-align:right" title="Mois au-dessus de l'enveloppe parmi les 3 derniers">3 derniers mois</th></tr></thead><tbody>${body}
-    <tr style="font-weight:700"><td>Total</td><td class="num">${mh(T.fixed)}</td><td class="num">${mh(T.vp)}</td><td class="num">${mh(T.bv)}</td><td class="num">${mh(T.real)}</td><td class="num">${tg===null?"—":`<span class="${tg>=0?"green":"red"}">${mh(tg)}</span>`}</td><td></td><td></td></tr></tbody></table></div>
-    <p class="small muted">Écart = (fixe prévu + enveloppe) − réalisé : positif = marge, rouge = dépassement. « 3 derniers mois » compte les mois où la part variable a dépassé l'enveloppe actuelle. Les catégories « Épargne » sont exclues (elles relèvent de l'épargne cible).</p>
-    ${watch.length?`<div class="notice warning">À corriger en priorité : <strong>${watch.map(safe).join(", ")}</strong> (dépassées ce mois-ci, ou au-dessus de l'enveloppe au moins 2 des 3 derniers mois). Relève l'enveloppe si c'est un besoin réel, sinon change l'habitude.</div>`:""}`}
+  $("envTable").innerHTML=`<div style="overflow-x:auto"><table><thead><tr><th>Catégorie</th><th style="text-align:right">Fixe prévu</th><th style="text-align:right">Variable prévu</th><th style="text-align:right">Enveloppe / mois</th><th style="text-align:right">Réalisé</th><th style="text-align:right">Écart</th><th>Rythme</th><th style="text-align:right" title="Mois clos où la part variable a dépassé l'enveloppe">Dépassements</th></tr></thead><tbody>${body}
+    <tr style="font-weight:700"><td>Total</td><td class="num">${mh(T.fixed)}</td><td class="num">${mh(T.vp)}</td><td class="num">${mh(T.bv)}${N>1?`<br><small class="muted">cumul ${N} mois</small>`:""}</td><td class="num">${mh(T.real)}</td><td class="num">${tg===null?"—":`<span class="${tg>=0?"green":"red"}">${mh(tg)}</span>`}</td><td></td><td></td></tr></tbody></table></div>
+    <p class="small muted">Sur plusieurs mois, fixe, variable et réalisé sont cumulés. Écart = (fixe prévu + enveloppes) − réalisé : positif = marge, rouge = dépassement. « Dépassements » compte les mois clos où la part variable a dépassé l'enveloppe (3 derniers mois si la vue est sur un mois). Les catégories « Épargne » sont exclues.</p>
+    ${watch.length?`<div class="notice warning">À corriger en priorité : <strong>${watch.map(safe).join(", ")}</strong> (dépassées sur la période, ou au-dessus de l'enveloppe au moins la moitié des mois). Relève l'enveloppe si c'est un besoin réel, sinon change l'habitude.</div>`:""}`}
 
-function renderForecast(){renderBudget();renderEnvelopes();
+const PAL=["#285c9b","#147d62","#b94b4b","#a56a16","#6d4fa3","#2a8fa3","#c26a9a","#7a8a3a"];
+function renderPoles(){
+  const ym=selectedMonth,N=effN(),rows=visibleRows(ym,N),totR=rows.reduce((s,r)=>s+r.real,0),basis=totR>0?"real":"budget";
+  $("polesSub").textContent=(N===1?monthLabel(ym):N+" mois jusqu'à "+monthLabel(ym))+" · "+(basis==="real"?"dépenses réalisées":"dépenses prévues (rien de réalisé sur la période)");
+  const list=rows.map(r=>({name:r.name,v:r[basis],real:r.real,budget:r.budget})).filter(x=>x.v>0).sort((a,b)=>b.v-a.v);
+  if(!list.length){$("poles").innerHTML='<div class="card empty" style="grid-column:1/-1">Aucune dépense sur cette période.</div>';return}
+  const top=list.slice(0,7),rest=list.slice(7);
+  if(rest.length)top.push({name:"Autres ("+rest.length+")",v:rest.reduce((s,x)=>s+x.v,0),real:0,budget:0});
+  const tot=top.reduce((s,x)=>s+x.v,0);let off=25;
+  const col=i=>i<7?PAL[i]:"#9aa5b4";
+  const segs=top.map((x,i)=>{const p=x.v/tot*100,s=`<circle cx="21" cy="21" r="15.9155" fill="none" stroke="${col(i)}" stroke-width="6" stroke-dasharray="${p.toFixed(3)} ${(100-p).toFixed(3)}" stroke-dashoffset="${off.toFixed(3)}"/>`;off-=p;return s}).join("");
+  const leg=top.map((x,i)=>`<div><i style="background:${col(i)}"></i><span>${safe(x.name)}</span><span class="pc">${(x.v/tot*100).toFixed(x.v/tot<0.1?1:0).replace(".",",")} %</span><span>${mh(x.v)}</span></div>`).join("");
+  const bl=rows.filter(r=>r.real>0||r.budget>0).sort((a,b)=>Math.max(b.real,b.budget)-Math.max(a.real,a.budget)).slice(0,12),mx=Math.max(...bl.map(r=>Math.max(r.real,r.budget)))||1;
+  const bars=bl.map(r=>`<div class="barrow" style="grid-template-columns:105px 1fr 150px"><span>${safe(r.name)}</span><div class="pbar" title="Réalisé ${money(r.real)} · prévu ${money(r.budget)}"><b style="width:${r.real/mx*100}%;background:${r.real>r.budget+0.005&&r.budget>0?"var(--red)":"var(--blue)"}"></b><u style="left:calc(${r.budget/mx*100}% - 1px)"></u></div><span class="amount">${mh(r.real)} <small class="muted">/ ${mh(r.budget)}</small></span></div>`).join("");
+  $("poles").innerHTML=`<div class="card"><div class="sectionhead"><h2>Réalisé vs prévu</h2><span class="muted small">Trait noir = prévu (fixe + enveloppe) · rouge = dépassé</span></div><div class="barlist">${bars}</div></div>
+    <div class="card"><div class="sectionhead"><h2>Répartition</h2></div><div class="donutwrap"><svg viewBox="0 0 42 42" role="img" aria-label="Répartition des dépenses par catégorie"><circle cx="21" cy="21" r="15.9155" fill="none" stroke="#edf0f4" stroke-width="6"/>${segs}</svg><div class="donutc"><strong>${mh(tot)}</strong><small>${basis==="real"?"dépensés":"prévus"}</small></div></div><div class="leg">${leg}</div></div>`}
+
+function renderForecast(){renderBudget();renderPoles();renderEnvelopes();
   const n=Number($("horizon").value),months=Array.from({length:n},(_,i)=>monthAdd(selectedMonth,i)),inc=incomeEst();
   const V=visibleRows(selectedMonth).reduce((s,r)=>s+r.bv,0);let totals={in:0,out:0};
   const recIn=months.reduce((s,m)=>s+recurringFor(m).in,0);
@@ -401,7 +443,7 @@ function renderCats(){
   $("ruleMem").innerHTML=vault.rules.length?vault.rules.map((r,i)=>`<div class="listitem"><span>« ${safe(r.k)} » → <strong>${safe(r.c)}</strong></span><button class="danger" data-delrule="${i}">Oublier</button></div>`).join("")+'<p class="small muted">Ces mots-clés sont stockés dans le coffre chiffré. N\'y mets jamais de nom propre ou de commerçant.</p>':'<div class="empty">Aucune règle mémorisée. Tu peux en enregistrer lors d\'un import (mots génériques uniquement).</div>';
 }
 function fillCats(id,type){const s=$(id),cur=s.value,list=catsFor(type);s.innerHTML=list.map(c=>`<option value="${safe(c.name)}">${safe(c.name)}</option>`).join("");if(list.some(c=>c.name===cur))s.value=cur}
-function renderAll(skipTable){fillCats("fCategory",$("fType").value);fillCats("rCategory",$("rType").value);fillFilter();renderMetrics();renderChart();renderBars();renderInsight();if(!skipTable)renderFlowTable();renderRecent();renderRules();renderForecast();renderCats()}
+function renderAll(skipTable){fillCats("fCategory",$("fType").value);fillCats("rCategory",$("rType").value);fillFilter();renderMetrics();renderChart();renderBars();renderInsight();if(!skipTable)renderFlowTable();renderRecent();renderRules();renderForecast();renderCats();renderNav()}
 function tab(name){document.querySelectorAll(".nav button").forEach(b=>b.classList.toggle("active",b.dataset.tab===name));["overview","flows","recurring","forecast","cats","import"].forEach(t=>$("tab-"+t).classList.toggle("hidden",t!==name))}
 
 /* ======================== Catégories : renommer, fusionner, supprimer ======================== */
@@ -680,13 +722,10 @@ function commitImport(){
 
 /* ======================== Évènements ======================== */
 document.querySelectorAll(".nav button").forEach(b=>b.addEventListener("click",()=>tab(b.dataset.tab)));document.querySelectorAll("[data-goto]").forEach(b=>b.addEventListener("click",()=>tab(b.dataset.goto)));
-$("newVault").onclick=createVault;$("openVault").onclick=()=>{if($("pass").value.length<16){$("unlockMsg").textContent="Saisis d'abord la phrase secrète (16 caractères minimum).";$("pass").focus();return}$("fileIn").click()};
-$("importBtn").onclick=async()=>{const r=await modal({title:"Ouvrir un autre coffre",text:dirty?"Attention : des modifications non exportées seront perdues.":"Saisis la phrase secrète du coffre à ouvrir.",fields:[{name:"p",label:"Phrase secrète",type:"password"}],ok:"Choisir le fichier"});if(!r)return;$("pass").value=r.p;$("fileIn").click()};
+$("importBtn").onclick=()=>{if(dirty&&!confirm("Des modifications non exportées seront perdues. Ouvrir un autre coffre quand même ?"))return;$("fileIn").click()};
 $("fileIn").onchange=e=>importFile(e.target.files[0]);
-$("exportBtn").onclick=async()=>{try{download(await encryptVault());dirty=false;updDirty();toast("Coffre chiffré téléchargé. Remplace ta sauvegarde précédente.")}catch(e){toast("Export impossible : "+e.message)}};
-$("passBtn").onclick=async()=>{const r=await modal({title:"Changer la phrase secrète",text:"Le coffre sera rechiffré avec la nouvelle phrase au prochain export.",fields:[{name:"a",label:"Nouvelle phrase (16 caractères minimum)",type:"password"},{name:"b",label:"Confirmation",type:"password"}],ok:"Changer"});if(!r)return;if(r.a.length<16){toast("16 caractères minimum.");return}if(r.a!==r.b){toast("Les deux saisies ne correspondent pas.");return}session=await newSession(r.a);touch();toast("Nouvelle phrase prise en compte : exporte le coffre pour l'appliquer.")};
+$("exportBtn").onclick=exportVault;$("cleanBtn").onclick=cleanBrowser;
 $("privBtn").onclick=()=>{const on=document.body.classList.toggle("priv");$("privBtn").setAttribute("aria-pressed",on);$("privBtn").textContent=on?"Afficher les montants":"Masquer les montants";renderChart()};
-$("closeBtn").onclick=()=>{if(dirty&&!confirm("Des modifications n'ont pas été exportées. Fermer quand même ?"))return;vault=null;session=null;dirty=false;imp=null;document.body.classList.remove("priv");showUnlock("Coffre fermé. Les données en mémoire ont été abandonnées.")};
 $("monthPick").onchange=e=>{if(e.target.value){selectedMonth=e.target.value;renderAll()}};$("prevMonth").onclick=()=>{selectedMonth=monthAdd(selectedMonth,-1);$("monthPick").value=selectedMonth;renderAll()};$("nextMonth").onclick=()=>{selectedMonth=monthAdd(selectedMonth,1);$("monthPick").value=selectedMonth;renderAll()};
 $("trend").onclick=e=>{const g=e.target.closest("[data-m]");if(g){selectedMonth=g.dataset.m;$("monthPick").value=selectedMonth;renderAll()}};
 $("fDate").value=todayStr();$("rStart").value=monthNow();
@@ -699,12 +738,15 @@ $("saveFlow").onclick=()=>{const date=$("fDate").value,amount=Number($("fAmount"
   $("fAmount").value="";$("fLabel").value="";$("fRecurring").value="";$("flowForm").classList.add("hidden");touch();renderAll()};
 $("flowTable").onclick=e=>{const b=e.target.closest("[data-del-flow]");if(b&&confirm("Supprimer ce mouvement de la mémoire de travail ?")){vault.flows=vault.flows.filter(f=>f.id!==b.dataset.delFlow);touch();renderAll()}};
 $("flowTable").onchange=e=>{const s=e.target.closest("[data-flow-cat]");if(s){const f=vault.flows.find(x=>x.id===s.dataset.flowCat);if(f){f.category=s.value;touch();renderAll(true)}}};
-$("flFilterMonth").onchange=renderFlowTable;$("flFilterCat").onchange=renderFlowTable;
+$("flFilterCat").onchange=renderFlowTable;
 $("addRule").onclick=()=>$("ruleForm").classList.remove("hidden");$("cancelRule").onclick=()=>$("ruleForm").classList.add("hidden");$("detectRules").onclick=showDetect;
 $("saveRule").onclick=()=>{const amount=Number($("rAmount").value),start=$("rStart").value,day=Number($("rDay").value),end=$("rEnd").value;if(!start||!(amount>0)||!(day>=1&&day<=28)||(end&&end<start)){toast("Vérifie le montant, les dates et le jour (1 à 28).");return}
   vault.recurrences.push({id:uid(),type:$("rType").value,amount:round2(amount),category:$("rCategory").value,label:$("rLabel").value.trim(),freq:$("rFreq").value,day:Math.round(day),start,end:end||null,active:true});$("rAmount").value="";$("rLabel").value="";$("ruleForm").classList.add("hidden");touch();renderAll()};
 $("ruleList").onclick=e=>{const b=e.target.closest("[data-del-rule]");if(b&&confirm("Supprimer cette récurrence ?")){vault.recurrences=vault.recurrences.filter(r=>r.id!==b.dataset.delRule);touch();renderAll()}};
 $("horizon").onchange=renderForecast;
+document.addEventListener("click",e=>{const b=e.target.closest("[data-per],[data-pshift]");if(!b||!vault)return;
+  if(b.dataset.per!==undefined)period=+b.dataset.per;else selectedMonth=monthAdd(selectedMonth,+b.dataset.pshift*effN());
+  $("monthPick").value=selectedMonth;renderAll()});
 [["bIncome","income",true],["bSaving","saving",false],["bSafety","safety",false],["bCash","cash",true]].forEach(([id,k,nul])=>$(id).onchange=()=>{const x=numOrNull($(id).value);
   if(Number.isNaN(x)||(x!==null&&x<0&&k!=="cash")){toast("Montant invalide.");renderBudget();return}
   const B=bud();B[k]=x===null?(nul?null:0):round2(x);if(k==="cash")B.cashDate=x===null?null:todayStr();touch();renderForecast()});
@@ -726,7 +768,8 @@ $("impMap").onchange=e=>{const t=e.target;if(t.dataset.map!==undefined){imp.map[
 $("impOnlyCheck").onchange=()=>imp&&renderImpMap();
 $("impOpts").onchange=e=>{if(e.target.id==="optFuture")imp.opts.future=e.target.checked;if(e.target.id==="optReplace")imp.opts.replace=e.target.checked;renderImpPreview()};
 $("impCancel").onclick=()=>{imp=null;resetImportUI()};$("impCommit").onclick=commitImport;
-showUnlock();
+if(!crypto||!crypto.subtle)toast("Web Crypto indisponible : ouvre l'application depuis localhost (voir le guide) pour chiffrer et ouvrir des coffres.");
+vault=blankVault();selectedMonth=monthNow();dirty=false;showApp();
 </script>
 </body>
 </html>
