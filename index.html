@@ -1,323 +1,615 @@
 <!doctype html>
 <html lang="fr">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="referrer" content="no-referrer">
-  <title>PILOT v2 — Finances du foyer</title>
-  <link rel="stylesheet" href="styles.css">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; connect-src 'none'; form-action 'none'; base-uri 'none'">
+<title>PILOT — Finances du foyer</title>
+<style>
+:root{--bg:#f3f5f8;--panel:#fff;--ink:#17212f;--muted:#687587;--line:#e5e9ef;--blue:#285c9b;--blue2:#eaf1fa;--green:#147d62;--red:#b94b4b;--amber:#a56a16;--shadow:0 8px 26px rgba(22,38,58,.06)}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}
+button,input,select{font:inherit}button{cursor:pointer;border:0;border-radius:10px;padding:10px 14px;font-weight:650;background:var(--blue);color:#fff}button.secondary{background:#eef2f7;color:var(--ink);border:1px solid var(--line)}button.danger{background:#fff1f1;color:var(--red);border:1px solid #f1d1d1}button.dangerSolid{background:var(--red)}button:disabled{opacity:.45;cursor:not-allowed}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+input,select{width:100%;padding:11px 12px;border:1px solid #dce2ea;border-radius:9px;background:#fff;color:var(--ink)}input[type=checkbox]{width:auto;accent-color:var(--blue)}label{display:block;font-size:12px;color:var(--muted);font-weight:700;margin-bottom:6px}
+.shell{max-width:1220px;margin:auto;padding:22px}.top{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:22px;flex-wrap:wrap}.brand{display:flex;align-items:center;gap:12px}.mark{width:42px;height:42px;border-radius:13px;background:#173b67;color:white;display:grid;place-items:center;font-weight:900;letter-spacing:-1px}.brand h1{font-size:20px;margin:0;letter-spacing:.06em}.brand p{margin:2px 0 0;color:var(--muted);font-size:12px}.actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.badge{display:inline-flex;align-items:center;gap:6px;border-radius:30px;padding:5px 11px;font-size:12px;font-weight:700;background:#fff6e8;color:#805817;border:1px solid #f1deb8}
+.nav{display:flex;gap:6px;border-bottom:1px solid var(--line);margin-bottom:20px;overflow:auto}.nav button{background:transparent;color:var(--muted);border-radius:9px 9px 0 0;padding:12px 15px;white-space:nowrap}.nav button.active{color:var(--blue);background:var(--blue2);box-shadow:inset 0 -2px var(--blue)}
+.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}.card{background:var(--panel);border:1px solid var(--line);border-radius:15px;padding:17px;box-shadow:var(--shadow)}.metric small{color:var(--muted);font-weight:650}.metric strong{display:block;font-size:26px;letter-spacing:-.04em;margin:8px 0 2px}.metric em{font-style:normal;font-size:12px;color:var(--muted)}.green{color:var(--green)!important}.red{color:var(--red)!important}.amber{color:var(--amber)!important}
+.section{margin-top:17px}.sectionhead{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;flex-wrap:wrap}.sectionhead h2{font-size:16px;margin:0}.muted{color:var(--muted)}.small{font-size:12px}
+.monthbar{display:flex;align-items:center;gap:10px}.monthbar input{max-width:175px;font-weight:700}
+.two{display:grid;grid-template-columns:1.2fr .8fr;gap:14px}.barlist{display:grid;gap:12px}.barrow{display:grid;grid-template-columns:110px 1fr 82px;gap:10px;align-items:center;font-size:13px}.track{height:9px;background:#edf0f4;border-radius:20px;overflow:hidden}.fill{height:100%;background:#4b83bd;border-radius:20px}.amount{text-align:right;font-variant-numeric:tabular-nums;font-weight:650}
+table{width:100%;border-collapse:collapse;font-size:13px}th{text-align:left;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.04em;padding:10px 8px;border-bottom:1px solid var(--line);background:var(--panel)}td{padding:9px 8px;border-bottom:1px solid #edf0f4;vertical-align:middle}td.num{text-align:right;font-variant-numeric:tabular-nums}tr:last-child td{border-bottom:0}td select,td input:not([type=checkbox]){padding:7px 8px;font-size:13px}
+.scroll{overflow:auto;max-height:430px;border:1px solid var(--line);border-radius:10px}.scroll th{position:sticky;top:0;z-index:1}
+.pill{display:inline-block;border-radius:30px;padding:3px 8px;font-size:11px;font-weight:700;background:#eef2f7;color:#536173;white-space:nowrap}.pill.in{background:#e6f5ef;color:#147d62}.pill.out{background:#fff0ef;color:#b94b4b}.pill.warn{background:#fff6e8;color:#805817}.pill.both{background:#eaf1fa;color:#285c9b}
+.formgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.field{min-width:0}.wide{grid-column:1/-1}.formactions{display:flex;gap:8px;justify-content:flex-end;margin-top:14px;flex-wrap:wrap}
+.notice{padding:12px 14px;border-radius:11px;background:#eef4fb;color:#38516f;font-size:13px}.warning{background:#fff6e8;color:#805817}.okbox{background:#e6f5ef;color:#0f5f4a}.empty{text-align:center;padding:30px;color:var(--muted)}
+.lock{max-width:480px;margin:8vh auto;padding:28px}.lock h2{margin:0 0 8px}.lock p{color:var(--muted);font-size:14px}.lock .field{margin:15px 0}.hidden{display:none!important}
+.listitem{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid #edf0f4;flex-wrap:wrap}.listitem:last-child{border:0}.listitem strong{display:block}.listitem small{color:var(--muted)}
+.footer{font-size:11px;color:var(--muted);text-align:center;padding:25px 0}
+.inline{display:flex;gap:8px;align-items:end;flex-wrap:wrap}.inline .field{flex:1;min-width:150px}
+.filters{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px}.filters select{max-width:220px}
+.cin{fill:var(--green)}.cout{fill:var(--red)}.gridline{stroke:#e5e9ef}.axis{font-size:10px;fill:#687587}.sel{fill:#eaf1fa}.bar{cursor:pointer}
+.legend{display:flex;gap:14px;font-size:12px;color:var(--muted);margin-top:6px}.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px}
+dialog{border:0;border-radius:15px;padding:22px;max-width:440px;width:92vw;box-shadow:0 20px 60px rgba(10,20,40,.3);color:var(--ink)}dialog::backdrop{background:rgba(15,25,40,.45)}dialog h2{margin:0 0 8px;font-size:17px}dialog .field{margin-top:12px}
+#toast{position:fixed;left:50%;bottom:22px;transform:translate(-50%,20px);background:#17212f;color:#fff;padding:11px 18px;border-radius:11px;font-size:13px;opacity:0;pointer-events:none;transition:.2s;max-width:90vw;z-index:50}#toast.show{opacity:1;transform:translate(-50%,0)}
+.priv .m{filter:blur(7px);user-select:none}
+@media(max-width:850px){.grid{grid-template-columns:repeat(2,1fr)}.two{grid-template-columns:1fr}.formgrid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:560px){.shell{padding:14px}.top{align-items:flex-start;flex-direction:column}.grid{gap:9px}.card{padding:13px}.metric strong{font-size:21px}.formgrid{grid-template-columns:1fr}.barrow{grid-template-columns:85px 1fr 72px}.actions button{font-size:12px;padding:9px}.monthbar{width:100%}.monthbar input{flex:1}}
+</style>
 </head>
 <body>
-  <!-- Section Déverrouillage -->
-  <div id="unlock" class="shell">
-    <div class="card lock">
-      <div class="brand">
-        <div class="mark">P</div>
-        <div>
-          <h1>PILOT v2</h1>
-          <p>Tableau de bord financier local · Import Excel</p>
-        </div>
-      </div>
-      <h2 style="margin-top:26px">Ouvrir un coffre ou en créer un</h2>
-      <p>Les données restent dans cette page. Aucun enregistrement automatique.</p>
-      <div class="field">
-        <label for="pass">Mot de passe du coffre (16+ caractères)</label>
-        <input id="pass" type="password" autocomplete="new-password" placeholder="Phrase secrète longue">
-      </div>
-      <div class="actions">
-        <button id="newVault">Créer un coffre</button>
-        <button class="secondary" id="openVault">Ouvrir un fichier chiffré</button>
-        <input id="fileIn" type="file" accept=".json,application/json" class="hidden">
-      </div>
-      <p class="small" style="margin-top:18px">
-        Le mot de passe ne peut pas être récupéré. Conserve une copie du fichier chiffré.
-      </p>
-      <div id="unlockMsg" class="small red" role="status"></div>
-    </div>
+<div id="unlock" class="shell">
+  <div class="card lock">
+    <div class="brand"><div class="mark">P</div><div><h1>PILOT</h1><p>Tableau de bord financier local · v2</p></div></div>
+    <h2 style="margin-top:26px">Ouvrir un coffre ou en créer un</h2>
+    <p>Les données restent dans cette page pendant son utilisation. Aucun enregistrement automatique n'est effectué.</p>
+    <div class="field"><label for="pass">Phrase secrète du coffre (16 caractères minimum)</label><input id="pass" type="password" autocomplete="new-password" placeholder="Phrase secrète longue"></div>
+    <div class="field"><label for="pass2">Confirmation (uniquement pour créer un coffre)</label><input id="pass2" type="password" autocomplete="new-password" placeholder="Saisir à nouveau la phrase secrète"></div>
+    <div class="actions"><button id="newVault">Créer un coffre</button><button class="secondary" id="openVault">Ouvrir un fichier chiffré</button><input id="fileIn" type="file" accept=".json,application/json" class="hidden"></div>
+    <p class="small" style="margin-top:18px">La phrase secrète ne peut pas être récupérée. Conserve une copie de sauvegarde du fichier chiffré.</p>
+    <div id="unlockMsg" class="small red" role="status"></div>
   </div>
-
-  <!-- Application principale -->
-  <div id="app" class="hidden">
-    <div class="shell">
-      <header class="top">
-        <div class="brand">
-          <div class="mark">P</div>
-          <div>
-            <h1>PILOT v2</h1>
-            <p>Vision financière du foyer · Import Excel · Stockage local chiffré</p>
-          </div>
-        </div>
-        <div class="actions">
-          <button class="secondary" id="exportBtn">Chiffrer & exporter</button>
-          <button class="secondary" id="importBtn">Ouvrir un autre coffre</button>
-          <button class="secondary" id="importExcelBtn">Importer depuis Excel</button>
-          <button class="danger" id="closeBtn">Fermer</button>
-        </div>
-      </header>
-
-      <nav class="nav" aria-label="Navigation">
-        <button class="active" data-tab="overview">Vue d'ensemble</button>
-        <button data-tab="flows">Flux financiers</button>
-        <button data-tab="recurring">Récurrences</button>
-        <button data-tab="forecast">Prévisions</button>
-        <button data-tab="categories">Catégories</button>
-      </nav>
-
-      <main>
-        <!-- Onglet Vue d'ensemble -->
-        <section id="tab-overview">
-          <div class="sectionhead">
-            <div>
-              <h2>Vue mensuelle</h2>
-              <div class="muted small">Lecture synthétique des entrées et sorties</div>
-            </div>
-            <div class="monthbar">
-              <button class="secondary" id="prevMonth" aria-label="Mois précédent">‹</button>
-              <input type="month" id="monthPick">
-              <button class="secondary" id="nextMonth" aria-label="Mois suivant">›</button>
-            </div>
-          </div>
-          <div class="grid" id="metrics"></div>
-          <div class="two section">
-            <div class="card">
-              <div class="sectionhead">
-                <h2>Répartition des dépenses</h2>
-                <span class="muted small">Mois sélectionné</span>
-              </div>
-              <div id="categoryBars" class="barlist"></div>
-            </div>
-            <div class="card">
-              <div class="sectionhead">
-                <h2>Lecture du mois</h2>
-              </div>
-              <div id="monthInsight"></div>
-            </div>
-          </div>
-          <div class="card section">
-            <div class="sectionhead">
-              <h2>Derniers mouvements</h2>
-              <button class="secondary" data-goto="flows">Voir les flux</button>
-            </div>
-            <div id="recent"></div>
-          </div>
-        </section>
-
-        <!-- Onglet Flux financiers -->
-        <section id="tab-flows" class="hidden">
-          <div class="sectionhead">
-            <div>
-              <h2>Flux financiers</h2>
-              <div class="muted small">Une ligne = une entrée ou une sortie</div>
-            </div>
-            <button id="addFlow">Ajouter un flux</button>
-          </div>
-          <div id="flowForm" class="card hidden">
-            <h2 style="font-size:16px;margin-top:0">Nouveau mouvement</h2>
-            <div class="formgrid">
-              <div class="field">
-                <label for="fDate">Date</label>
-                <input type="date" id="fDate">
-              </div>
-              <div class="field">
-                <label for="fType">Nature</label>
-                <select id="fType">
-                  <option value="out">Dépense</option>
-                  <option value="in">Recette</option>
-                </select>
-              </div>
-              <div class="field">
-                <label for="fAmount">Montant (€)</label>
-                <input type="number" id="fAmount" min="0.01" step="0.01" placeholder="0,00">
-              </div>
-              <div class="field">
-                <label for="fCategory">Catégorie</label>
-                <select id="fCategory"></select>
-              </div>
-              <div class="field">
-                <label for="fLabel">Libellé neutre (facultatif)</label>
-                <input id="fLabel" maxlength="32" placeholder="Ex. abonnement A">
-              </div>
-              <div class="field">
-                <label for="fRecurring">Récurrence</label>
-                <select id="fRecurring">
-                  <option value="">Aucune</option>
-                  <option value="monthly">Mensuelle</option>
-                  <option value="quarterly">Trimestrielle</option>
-                  <option value="yearly">Annuelle</option>
-                </select>
-              </div>
-            </div>
-            <div class="formactions">
-              <button class="secondary" id="cancelFlow">Annuler</button>
-              <button id="saveFlow">Ajouter au coffre en mémoire</button>
-            </div>
-          </div>
-          <div class="card section">
-            <div class="sectionhead">
-              <div>
-                <h2>Historique</h2>
-                <span class="muted small" id="flowCount"></span>
-              </div>
-              <div class="actions flow-actions">
-                <button class="secondary" id="selectAllFlows">Tout sélectionner</button>
-                <button class="danger" id="deleteSelectedFlows" disabled>Supprimer la sélection</button>
-                <button class="danger" id="deleteAllFlows">Tout supprimer</button>
-              </div>
-            </div>
-            <div id="flowTable"></div>
-          </div>
-        </section>
-
-        <!-- Onglet Récurrences -->
-        <section id="tab-recurring" class="hidden">
-          <div class="sectionhead">
-            <div>
-              <h2>Engagements récurrents</h2>
-              <div class="muted small">Dépenses et recettes prévisibles</div>
-            </div>
-            <button id="addRule">Ajouter une récurrence</button>
-          </div>
-          <div class="notice">
-            Les récurrences servent à prévoir les mois à venir. Elles ne créent pas automatiquement de mouvements dans l'historique.
-          </div>
-          <div id="ruleForm" class="card section hidden">
-            <div class="formgrid">
-              <div class="field">
-                <label for="rType">Nature</label>
-                <select id="rType">
-                  <option value="out">Dépense</option>
-                  <option value="in">Recette</option>
-                </select>
-              </div>
-              <div class="field">
-                <label for="rAmount">Montant (€)</label>
-                <input type="number" id="rAmount" min="0.01" step="0.01">
-              </div>
-              <div class="field">
-                <label for="rCategory">Catégorie</label>
-                <select id="rCategory"></select>
-              </div>
-              <div class="field">
-                <label for="rLabel">Libellé neutre</label>
-                <input id="rLabel" maxlength="32" placeholder="Ex. abonnement A">
-              </div>
-              <div class="field">
-                <label for="rFreq">Fréquence</label>
-                <select id="rFreq">
-                  <option value="monthly">Mensuelle</option>
-                  <option value="quarterly">Trimestrielle</option>
-                  <option value="yearly">Annuelle</option>
-                </select>
-              </div>
-              <div class="field">
-                <label for="rDay">Jour du mois (1–28)</label>
-                <input type="number" id="rDay" min="1" max="28" value="5">
-              </div>
-              <div class="field">
-                <label for="rStart">À partir de</label>
-                <input type="month" id="rStart">
-              </div>
-              <div class="field">
-                <label for="rEnd">Jusqu'à (facultatif)</label>
-                <input type="month" id="rEnd">
-              </div>
-            </div>
-            <div class="formactions">
-              <button class="secondary" id="cancelRule">Annuler</button>
-              <button id="saveRule">Ajouter la récurrence</button>
-            </div>
-          </div>
-          <div class="card section">
-            <div id="ruleList"></div>
-          </div>
-        </section>
-
-        <!-- Onglet Prévisions -->
-        <section id="tab-forecast" class="hidden">
-          <div class="sectionhead">
-            <div>
-              <h2>Prévisions glissantes</h2>
-              <div class="muted small">Projection à partir des récurrences déclarées</div>
-            </div>
-            <select id="horizon" style="max-width:150px">
-              <option value="3">3 mois</option>
-              <option value="6" selected>6 mois</option>
-              <option value="12">12 mois</option>
-            </select>
-          </div>
-          <div class="grid" id="forecastMetrics"></div>
-          <div class="card section">
-            <div id="forecastTable"></div>
-          </div>
-          <div class="notice warning section">
-            Cette projection ne comprend que les récurrences saisies. Les dépenses variables (alimentation, loisirs, transport…) doivent être ajoutées sous forme d'enveloppes prévisionnelles dans une prochaine version.
-          </div>
-        </section>
-
-        <!-- NOUVEAU : Onglet Catégories -->
-        <section id="tab-categories" class="hidden">
-          <div class="sectionhead">
-            <h2>Gérer les catégories</h2>
-            <div class="muted small">Modifiez les catégories utilisées pour les flux et récurrences</div>
-          </div>
-          <div class="notice">
-            La modification d'une catégorie sera appliquée à <strong>tous les flux et récurrences existants</strong>.
-          </div>
-          <div class="card">
-            <div class="sectionhead">
-              <h3>Catégories existantes</h3>
-              <button id="addCategoryBtn" class="secondary">Ajouter une catégorie</button>
-            </div>
-            <div id="categoryList" class="barlist"></div>
-          </div>
-          <!-- Modale pour ajouter/modifier une catégorie -->
-          <div id="categoryModal" class="card hidden" style="max-width: 500px; margin: 5vh auto;">
-            <h3 id="modalTitle">Ajouter une catégorie</h3>
-            <div class="field">
-              <label for="newCategoryName">Nom de la catégorie</label>
-              <input type="text" id="newCategoryName" placeholder="Ex: Énergie">
-            </div>
-            <div class="field" id="replaceCategoryField" style="display: none;">
-              <label for="replaceCategorySelect">Remplacer la catégorie :</label>
-              <select id="replaceCategorySelect"></select>
-            </div>
-            <div class="formactions">
-              <button class="secondary" id="cancelCategory">Annuler</button>
-              <button id="saveCategory">Enregistrer</button>
-            </div>
-          </div>
-        </section>
-      </main>
-
-      <!-- Modale pour l'import Excel -->
-      <div id="importExcelModal" class="card hidden" style="max-width: 600px; margin: 5vh auto;">
-        <h2>Importer depuis Excel</h2>
-        <p>Sélectionnez un fichier <strong>.xlsx</strong> ou <strong>.csv</strong> avec les colonnes suivantes :</p>
-        <ul style="margin-left: 20px; font-size: 14px;">
-          <li><code>Date</code> (format AAAA-MM-JJ)</li>
-          <li><code>Type</code> ("Dépense" ou "Recette")</li>
-          <li><code>Montant</code> (nombre, ex: 12.34)</li>
-          <li><code>Catégorie</code> (optionnel, sinon "Autre")</li>
-          <li><code>Libellé</code> (optionnel, max 32 caractères)</li>
-        </ul>
-        <div class="field">
-          <label for="excelFile">Fichier Excel</label>
-          <input type="file" id="excelFile" accept=".xlsx,.xls,.csv">
-        </div>
-        <div id="excelPreview" style="margin-top: 20px; max-height: 300px; overflow-y: auto;"></div>
-        <div class="formactions" style="margin-top: 20px;">
-          <button class="secondary" id="cancelExcelImport">Annuler</button>
-          <button id="confirmExcelImport">Importer les données</button>
-        </div>
+</div>
+<div id="app" class="hidden">
+<div class="shell">
+  <header class="top">
+    <div class="brand"><div class="mark">P</div><div><h1>PILOT</h1><p>Vision financière du foyer · stockage local chiffré</p></div></div>
+    <div class="actions"><span id="dirty" class="badge hidden" role="status">● Modifications non exportées</span><button id="exportBtn">Chiffrer &amp; exporter</button><button class="secondary" id="importBtn">Ouvrir un autre coffre</button><button class="secondary" id="passBtn">Changer la phrase</button><button class="secondary" id="privBtn" aria-pressed="false">Masquer les montants</button><button class="danger" id="closeBtn">Fermer</button></div>
+  </header>
+  <nav class="nav" aria-label="Navigation">
+    <button class="active" data-tab="overview">Vue d'ensemble</button><button data-tab="flows">Flux financiers</button><button data-tab="recurring">Récurrences</button><button data-tab="forecast">Prévisions</button><button data-tab="cats">Catégories</button><button data-tab="import">Importer</button>
+  </nav>
+  <main>
+    <section id="tab-overview">
+      <div class="sectionhead"><div><h2>Vue mensuelle</h2><div class="muted small">Lecture synthétique des entrées et sorties</div></div><div class="monthbar"><button class="secondary" id="prevMonth" aria-label="Mois précédent">‹</button><input type="month" id="monthPick"><button class="secondary" id="nextMonth" aria-label="Mois suivant">›</button></div></div>
+      <div class="grid" id="metrics"></div>
+      <div class="card section"><div class="sectionhead"><h2>12 derniers mois</h2><span class="muted small">Cliquer sur un mois pour le sélectionner</span></div><div id="trend"></div><div class="legend"><span><i style="background:var(--green)"></i>Recettes</span><span><i style="background:var(--red)"></i>Dépenses</span></div></div>
+      <div class="two section">
+        <div class="card"><div class="sectionhead"><h2>Répartition des dépenses</h2><span class="muted small">Mois sélectionné</span></div><div id="categoryBars" class="barlist"></div></div>
+        <div class="card"><div class="sectionhead"><h2>Lecture du mois</h2></div><div id="monthInsight"></div></div>
       </div>
-
-      <div class="footer">
-        PILOT v2.0 · Fonctionnement local · Aucun stockage automatique · Aucun service externe
+      <div class="card section"><div class="sectionhead"><h2>Derniers mouvements</h2><button class="secondary" data-goto="flows">Voir les flux</button></div><div id="recent"></div></div>
+    </section>
+    <section id="tab-flows" class="hidden">
+      <div class="sectionhead"><div><h2>Flux financiers</h2><div class="muted small">Une ligne = une entrée ou une sortie. La catégorie se modifie directement dans le tableau.</div></div><button id="addFlow">Ajouter un flux</button></div>
+      <div id="flowForm" class="card hidden">
+        <h2 style="font-size:16px;margin-top:0">Nouveau mouvement</h2>
+        <div class="formgrid">
+          <div class="field"><label for="fDate">Date</label><input type="date" id="fDate"></div>
+          <div class="field"><label for="fType">Nature</label><select id="fType"><option value="out">Dépense</option><option value="in">Recette</option></select></div>
+          <div class="field"><label for="fAmount">Montant (€)</label><input type="number" id="fAmount" min="0.01" step="0.01" placeholder="0,00"></div>
+          <div class="field"><label for="fCategory">Catégorie</label><select id="fCategory"></select></div>
+          <div class="field"><label for="fLabel">Libellé neutre (facultatif)</label><input id="fLabel" maxlength="32" placeholder="Ex. abonnement A"></div>
+          <div class="field"><label for="fRecurring">Créer aussi une récurrence</label><select id="fRecurring"><option value="">Non</option><option value="monthly">Mensuelle</option><option value="quarterly">Trimestrielle</option><option value="yearly">Annuelle</option></select></div>
+        </div>
+        <div class="formactions"><button class="secondary" id="cancelFlow">Annuler</button><button id="saveFlow">Ajouter au coffre en mémoire</button></div>
       </div>
-    </div>
-  </div>
+      <div class="card section"><div class="sectionhead"><h2>Historique</h2><span class="muted small" id="flowCount"></span></div>
+        <div class="filters"><select id="flFilterMonth" aria-label="Période"><option value="all">Tous les mois</option><option value="sel">Mois sélectionné</option></select><select id="flFilterCat" aria-label="Catégorie"></select></div>
+        <div id="flowTable"></div></div>
+    </section>
+    <section id="tab-recurring" class="hidden">
+      <div class="sectionhead"><div><h2>Engagements récurrents</h2><div class="muted small">Dépenses et recettes prévisibles</div></div><div class="actions"><button class="secondary" id="detectRules">Détecter depuis l'historique</button><button id="addRule">Ajouter une récurrence</button></div></div>
+      <div class="notice">Les récurrences servent à prévoir les mois à venir. Elles ne créent pas automatiquement de mouvements dans l'historique.</div>
+      <div id="detectBox" class="card section hidden"></div>
+      <div id="ruleForm" class="card section hidden">
+        <div class="formgrid">
+          <div class="field"><label for="rType">Nature</label><select id="rType"><option value="out">Dépense</option><option value="in">Recette</option></select></div>
+          <div class="field"><label for="rAmount">Montant (€)</label><input type="number" id="rAmount" min="0.01" step="0.01"></div>
+          <div class="field"><label for="rCategory">Catégorie</label><select id="rCategory"></select></div>
+          <div class="field"><label for="rLabel">Libellé neutre</label><input id="rLabel" maxlength="32" placeholder="Ex. abonnement A"></div>
+          <div class="field"><label for="rFreq">Fréquence</label><select id="rFreq"><option value="monthly">Mensuelle</option><option value="quarterly">Trimestrielle</option><option value="yearly">Annuelle</option></select></div>
+          <div class="field"><label for="rDay">Jour du mois (1–28)</label><input type="number" id="rDay" min="1" max="28" value="5"></div>
+          <div class="field"><label for="rStart">À partir de</label><input type="month" id="rStart"></div>
+          <div class="field"><label for="rEnd">Jusqu'à (facultatif)</label><input type="month" id="rEnd"></div>
+        </div>
+        <div class="formactions"><button class="secondary" id="cancelRule">Annuler</button><button id="saveRule">Ajouter la récurrence</button></div>
+      </div>
+      <div class="card section"><div id="ruleList"></div></div>
+    </section>
+    <section id="tab-forecast" class="hidden">
+      <div class="sectionhead"><div><h2>Prévisions glissantes</h2><div class="muted small">Projection à partir des récurrences déclarées</div></div><select id="horizon" style="max-width:150px"><option value="3">3 mois</option><option value="6" selected>6 mois</option><option value="12">12 mois</option></select></div>
+      <div class="grid" id="forecastMetrics"></div>
+      <div class="card section"><div id="forecastTable"></div></div>
+      <div class="notice warning section">Cette projection ne comprend que les récurrences saisies. Les dépenses variables (alimentation, loisirs, transport…) doivent être ajoutées sous forme d'enveloppes prévisionnelles dans une prochaine version.</div>
+    </section>
+    <section id="tab-cats" class="hidden">
+      <div class="sectionhead"><div><h2>Catégories</h2><div class="muted small">Renommer, fusionner, ajouter ou supprimer. Toute modification s'applique à l'ensemble des mouvements et récurrences existants.</div></div></div>
+      <div class="card"><div class="inline"><div class="field"><label for="cName">Nouvelle catégorie</label><input id="cName" maxlength="32" placeholder="Ex. Animaux"></div><div class="field" style="max-width:190px"><label for="cKind">Utilisable pour</label><select id="cKind"><option value="out">Dépenses</option><option value="in">Recettes</option><option value="both">Les deux</option></select></div><button id="addCat">Ajouter</button></div></div>
+      <div class="card section"><div id="catTable"></div></div>
+      <div class="card section"><div class="sectionhead"><h2>Règles de reconnaissance à l'import</h2><span class="muted small">Mots-clés mémorisés (chiffrés dans le coffre)</span></div><div id="ruleMem"></div></div>
+    </section>
+    <section id="tab-import" class="hidden">
+      <div class="sectionhead"><div><h2>Importer un tableur</h2><div class="muted small">Formats : .ods, .xlsx, .csv — analyse 100 % locale, aucun envoi réseau</div></div></div>
+      <div class="notice">L'analyse détecte automatiquement la mise en page (tableau annuel catégories × mois, journal mensuel jour par jour, liste de mouvements). <strong>Les libellés (commerçants, noms, commentaires) ne sont jamais conservés</strong> : seuls date, nature, montant et catégorie entrent dans le coffre. Une analyse par IA externe obligerait à envoyer le contenu du fichier à un tiers, ce qui contredit l'exigence « rien d'interceptable » : la reconnaissance se fait donc localement, avec un dictionnaire que tu peux corriger et enrichir.</div>
+      <div class="card section"><label for="impFile">Fichier à analyser</label><input type="file" id="impFile" accept=".ods,.xlsx,.csv,.tsv,.txt"><p class="small muted" style="margin-bottom:0">Le fichier est lu en mémoire puis abandonné. Les feuilles non reconnues (noms de personnes, soldes…) ne sont pas lues.</p></div>
+      <div id="impBody" class="hidden">
+        <div class="card section"><div class="sectionhead"><h2>1 · Feuilles détectées</h2></div><div id="impSheets"></div></div>
+        <div class="card section"><div class="sectionhead"><h2>2 · Correspondance des catégories</h2><label class="small" style="margin:0;display:flex;gap:6px;align-items:center"><input type="checkbox" id="impOnlyCheck"> Afficher seulement les lignes à vérifier</label></div><div id="impMap"></div></div>
+        <div class="card section"><div class="sectionhead"><h2>3 · Aperçu avant import</h2></div><div id="impOpts"></div><div id="impPreview"></div><div class="formactions"><button class="secondary" id="impCancel">Annuler</button><button id="impCommit">Importer dans le coffre (mémoire)</button></div></div>
+      </div>
+    </section>
+  </main>
+  <div class="footer">PILOT 0.2 · Fonctionnement local · Aucun stockage automatique · Aucun service externe</div>
+</div>
+</div>
+<dialog id="dlg"><div id="dlgBody"></div></dialog>
+<div id="toast" role="status" aria-live="polite"></div>
+<script>
+"use strict";
+/* ======================== Utilitaires ======================== */
+const $=id=>document.getElementById(id);
+const enc=new TextEncoder(), dec=new TextDecoder();
+const ITER=600000;
+const DEFAULT_CATS=[["Logement","out"],["Alimentation","out"],["Santé","out"],["Banque","out"],["Transports","out"],["Mutuelle","out"],["Téléphonie","out"],["Assurances","out"],["Voiture","out"],["Maison","out"],["Restaurants","out"],["Loisirs","out"],["Épargne","out"],["Revenus","in"],["Autre","both"]];
+const pad=n=>String(n).padStart(2,"0");
+const monthNow=()=>{const d=new Date();return d.getFullYear()+"-"+pad(d.getMonth()+1)};
+const todayStr=()=>{const d=new Date();return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate())};
+let vault=null, session=null, dirty=false, selectedMonth=monthNow(), imp=null;
+const money=n=>new Intl.NumberFormat("fr-FR",{style:"currency",currency:"EUR"}).format(Number(n)||0);
+const mh=n=>`<span class="m">${money(n)}</span>`;
+function uid(){return crypto.randomUUID?crypto.randomUUID():String(Date.now())+Math.random().toString(16).slice(2)}
+function monthAdd(ym,n){let [y,m]=ym.split("-").map(Number);let d=new Date(y,m-1+n,1);return d.getFullYear()+"-"+pad(d.getMonth()+1)}
+function monthDiff(a,b){return (Number(b.slice(0,4))-Number(a.slice(0,4)))*12+Number(b.slice(5,7))-Number(a.slice(5,7))}
+function monthLabel(ym){return new Intl.DateTimeFormat("fr-FR",{month:"long",year:"numeric"}).format(new Date(ym+"-01T12:00:00"))}
+function safe(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+const nz=s=>String(s??"").normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase().replace(/[^a-z0-9 ]+/g," ").replace(/\s+/g," ").trim();
+const cleanName=s=>String(s??"").replace(/\s+/g," ").trim().slice(0,32);
+const round2=x=>Math.round(x*100)/100;
+let tt;function toast(m){const t=$("toast");t.textContent=m;t.classList.add("show");clearTimeout(tt);tt=setTimeout(()=>t.classList.remove("show"),6000)}
+function touch(){dirty=true;updDirty()}
+function updDirty(){$("dirty").classList.toggle("hidden",!dirty)}
+addEventListener("beforeunload",e=>{if(dirty&&vault){e.preventDefault();e.returnValue=""}});
+function modal({title,text,fields=[],ok="Valider",danger=false}){
+  return new Promise(res=>{
+    const d=$("dlg");
+    $("dlgBody").innerHTML=`<h2>${safe(title)}</h2>${text?`<p class="muted small">${safe(text)}</p>`:""}${fields.map(f=>`<div class="field"><label for="mf_${f.name}">${safe(f.label)}</label>${f.type==="select"?`<select id="mf_${f.name}">${f.options.map(o=>`<option value="${safe(o.value)}"${o.value===f.value?" selected":""}>${safe(o.label)}</option>`).join("")}</select>`:`<input id="mf_${f.name}" type="${f.type||"text"}" value="${safe(f.value||"")}" ${f.max?`maxlength="${f.max}"`:""} autocomplete="${f.type==="password"?"new-password":"off"}">`}</div>`).join("")}<div class="formactions"><button class="secondary" id="mCancel" type="button">Annuler</button><button id="mOk" type="button" class="${danger?"dangerSolid":""}">${safe(ok)}</button></div>`;
+    let fin=false;const done=v=>{if(fin)return;fin=true;d.close();res(v)};
+    const submit=()=>{const o={};fields.forEach(f=>o[f.name]=$("mf_"+f.name).value);done(o)};
+    $("mCancel").onclick=()=>done(null);$("mOk").onclick=submit;
+    d.querySelectorAll("input").forEach(i=>i.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();submit()}}));
+    d.oncancel=e=>{e.preventDefault();done(null)};
+    d.showModal();const first=d.querySelector("input,select");if(first)first.focus();
+  });
+}
 
-  <script src="script.js"></script>
+/* ======================== Modèle du coffre ======================== */
+function normalizeVault(v){
+  if(!v||typeof v!=="object"||!Array.isArray(v.flows)||!Array.isArray(v.recurrences))throw Error("Structure de données invalide.");
+  const out={version:2,createdAt:String(v.createdAt||new Date().toISOString()),categories:[],flows:[],recurrences:[],rules:[]};
+  const addCat=(name,kind)=>{name=cleanName(name);if(!name)return null;let c=out.categories.find(x=>nz(x.name)===nz(name));if(!c){c={name,kind:["in","out","both"].includes(kind)?kind:"out"};out.categories.push(c)}return c};
+  if(Array.isArray(v.categories))v.categories.forEach(c=>typeof c==="string"?addCat(c,"out"):c&&addCat(c.name,c.kind));
+  else DEFAULT_CATS.forEach(([n,k])=>addCat(n,k));
+  const ensure=(name,type)=>(addCat(name||"Autre",type==="in"?"in":"out")||addCat("Autre","both")).name;
+  v.flows.forEach(f=>{if(!f||!/^\d{4}-\d{2}-\d{2}$/.test(f.date)||!["in","out"].includes(f.type))return;const a=Number(f.amount);if(!Number.isFinite(a)||a<=0)return;
+    const o={id:String(f.id||uid()),date:f.date,type:f.type,amount:round2(a),category:ensure(f.category,f.type),label:String(f.label||"").slice(0,32),recurrence:f.recurrence||null};if(f.src==="import"||f.src==="import-agg")o.src=f.src;out.flows.push(o)});
+  v.recurrences.forEach(r=>{if(!r||!["in","out"].includes(r.type)||!["monthly","quarterly","yearly"].includes(r.freq)||!/^\d{4}-\d{2}$/.test(r.start))return;const a=Number(r.amount);if(!Number.isFinite(a)||a<=0)return;
+    out.recurrences.push({id:String(r.id||uid()),type:r.type,amount:round2(a),category:ensure(r.category,r.type),label:String(r.label||"").slice(0,32),freq:r.freq,day:Math.min(28,Math.max(1,parseInt(r.day)||1)),start:r.start,end:/^\d{4}-\d{2}$/.test(r.end||"")?r.end:null,active:r.active!==false})});
+  if(Array.isArray(v.rules))v.rules.forEach(r=>{if(r&&typeof r.k==="string"&&typeof r.c==="string"&&r.k.length<=40)out.rules.push({k:nz(r.k),c:ensure(r.c,"out")})});
+  if(!out.categories.length)DEFAULT_CATS.forEach(([n,k])=>addCat(n,k));
+  return out;
+}
+function blankVault(){const v={version:2,createdAt:new Date().toISOString(),categories:[],flows:[],recurrences:[],rules:[]};DEFAULT_CATS.forEach(([name,kind])=>v.categories.push({name,kind}));return v}
+const catByName=n=>vault.categories.find(c=>nz(c.name)===nz(n));
+const catsFor=type=>vault.categories.filter(c=>c.kind==="both"||c.kind===type);
+
+/* ======================== Chiffrement ======================== */
+function deriveKey(pw,salt,iter){return crypto.subtle.importKey("raw",enc.encode(pw),"PBKDF2",false,["deriveKey"]).then(k=>crypto.subtle.deriveKey({name:"PBKDF2",salt,iterations:iter,hash:"SHA-256"},k,{name:"AES-GCM",length:256},false,["encrypt","decrypt"]))}
+function b64(buf){const u=new Uint8Array(buf);let s="";for(let i=0;i<u.length;i+=0x8000)s+=String.fromCharCode.apply(null,u.subarray(i,i+0x8000));return btoa(s)}
+function un64(s){return Uint8Array.from(atob(s),c=>c.charCodeAt(0))}
+const aad=(iter,salt)=>enc.encode("PILOT|2|"+iter+"|"+salt);
+async function newSession(pw){const salt=crypto.getRandomValues(new Uint8Array(16));return {key:await deriveKey(pw,salt,ITER),salt,iter:ITER}}
+async function encryptVault(){
+  if(!session)throw Error("session verrouillée.");
+  const iv=crypto.getRandomValues(new Uint8Array(12)),saltB=b64(session.salt);
+  const cipher=await crypto.subtle.encrypt({name:"AES-GCM",iv,additionalData:aad(session.iter,saltB)},session.key,enc.encode(JSON.stringify(vault)));
+  return {app:"PILOT",format:2,kdf:"PBKDF2-SHA-256",iterations:session.iter,cipher:"AES-256-GCM",salt:saltB,iv:b64(iv),data:b64(cipher)};
+}
+async function decryptVault(obj,pw){
+  if(!obj||obj.app!=="PILOT"||![1,2].includes(obj.format))throw Error("Format de coffre non reconnu.");
+  const iter=Number(obj.iterations);if(!Number.isInteger(iter)||iter<100000||iter>5000000)throw Error("Paramètres de chiffrement invalides.");
+  const key=await deriveKey(pw,un64(obj.salt),iter),params={name:"AES-GCM",iv:un64(obj.iv)};
+  if(obj.format===2)params.additionalData=aad(iter,obj.salt);
+  let plain;try{plain=await crypto.subtle.decrypt(params,key,un64(obj.data))}catch{throw Error("phrase secrète incorrecte ou fichier altéré.")}
+  return {vault:normalizeVault(JSON.parse(dec.decode(plain))),legacy:obj.format===1||iter<ITER,key,salt:un64(obj.salt),iter};
+}
+function download(obj){const blob=new Blob([JSON.stringify(obj,null,2)],{type:"application/json"});const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download="pilot-coffre-"+todayStr()+".json";document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)}
+
+/* ======================== Écran de verrouillage ======================== */
+function showUnlock(msg=""){$("unlock").classList.remove("hidden");$("app").classList.add("hidden");$("unlockMsg").textContent=msg}
+function showApp(){$("unlock").classList.add("hidden");$("app").classList.remove("hidden");$("monthPick").value=selectedMonth;imp=null;resetImportUI();updDirty();tab("overview");renderAll()}
+async function createVault(){
+  const p=$("pass").value;
+  if(!crypto||!crypto.subtle){$("unlockMsg").textContent="Web Crypto indisponible. Ouvre l'application depuis localhost (voir le guide).";return}
+  if(p.length<16){$("unlockMsg").textContent="Utilise au moins 16 caractères pour la phrase secrète.";return}
+  if(p!==$("pass2").value){$("unlockMsg").textContent="Les deux phrases secrètes ne correspondent pas.";return}
+  $("unlockMsg").textContent="Dérivation de la clé…";
+  session=await newSession(p);vault=blankVault();dirty=true;selectedMonth=monthNow();$("pass").value="";$("pass2").value="";showApp();
+}
+async function importFile(file){
+  try{
+    if(!file)return;
+    const p=$("pass").value;if(p.length<16)throw Error("Saisis la phrase secrète (16 caractères minimum).");
+    if(file.size>60*1024*1024)throw Error("Fichier trop volumineux.");
+    if(vault&&dirty&&!confirm("Des modifications n'ont pas été exportées. Les abandonner et ouvrir un autre coffre ?"))return;
+    $("unlockMsg").textContent="Déchiffrement…";
+    const r=await decryptVault(JSON.parse(await file.text()),p);
+    vault=r.vault;dirty=false;
+    if(r.legacy){session=await newSession(p);dirty=true;toast("Coffre ancien format migré en mémoire : exporte-le pour finaliser la mise à niveau.")}
+    else session={key:r.key,salt:r.salt,iter:r.iter};
+    selectedMonth=monthNow();$("pass").value="";$("pass2").value="";showApp();
+  }catch(e){const m="Ouverture impossible : "+e.message;if($("app").classList.contains("hidden"))$("unlockMsg").textContent=m;else toast(m)}
+  finally{$("fileIn").value=""}
+}
+
+/* ======================== Calculs ======================== */
+function flowsFor(ym){return vault.flows.filter(f=>f.date.slice(0,7)===ym)}
+function sum(arr,type){return arr.filter(x=>x.type===type).reduce((s,x)=>s+Number(x.amount),0)}
+function due(rule,ym){if(ym<rule.start||(rule.end&&ym>rule.end))return false;const diff=monthDiff(rule.start,ym);return rule.freq==="monthly"||(rule.freq==="quarterly"&&diff%3===0)||(rule.freq==="yearly"&&diff%12===0)}
+function recurringFor(ym){const r={in:0,out:0};vault.recurrences.filter(x=>x.active!==false&&due(x,ym)).forEach(x=>r[x.type]+=Number(x.amount));return r}
+
+/* ======================== Rendus ======================== */
+function renderMetrics(){const fs=flowsFor(selectedMonth),income=sum(fs,"in"),out=sum(fs,"out"),balance=income-out;
+  const items=[["Recettes",income,"Entrées du mois","green"],["Dépenses",out,"Sorties du mois","red"],["Solde mensuel",balance,"Recettes − dépenses",balance>=0?"green":"red"],["Récurrences",recurringFor(selectedMonth).out,"Dépenses prévues","amber"]];
+  $("metrics").innerHTML=items.map(([a,b,c,d])=>`<div class="card metric"><small>${a}</small><strong class="${d}">${mh(b)}</strong><em>${c}</em></div>`).join("")}
+const kfmt=v=>v>=1000?(v/1000).toFixed(v>=10000?0:1).replace(".",",")+" k€":Math.round(v)+" €";
+function renderChart(){
+  const months=Array.from({length:12},(_,i)=>monthAdd(selectedMonth,i-11));
+  const data=months.map(m=>{const fs=flowsFor(m);return{m,i:sum(fs,"in"),o:sum(fs,"out")}});
+  if(data.every(d=>!d.i&&!d.o)){$("trend").innerHTML='<div class="empty">Aucune donnée sur les 12 derniers mois.</div>';return}
+  const max=Math.max(1,...data.flatMap(d=>[d.i,d.o])),W=720,H=230,L=52,B=28,T=10,iw=(W-L-6)/12,ph=H-B-T,bw=Math.min(20,iw/2-3);
+  const fm=new Intl.DateTimeFormat("fr-FR",{month:"short"});let s="";
+  for(let k=0;k<=4;k++){const y=T+ph-ph*k/4;s+=`<line class="gridline" x1="${L}" x2="${W}" y1="${y}" y2="${y}"/><text class="axis" x="${L-6}" y="${y+3}" text-anchor="end">${kfmt(max*k/4)}</text>`}
+  data.forEach((d,i)=>{const x=L+i*iw,cx=x+iw/2,hi=d.i/max*ph,ho=d.o/max*ph;
+    s+=`<g class="bar" data-m="${d.m}"><title>${safe(monthLabel(d.m))} — recettes ${money(d.i)} · dépenses ${money(d.o)}</title>${i===11?`<rect class="sel" x="${x+2}" y="${T}" width="${iw-4}" height="${ph}" rx="6"/>`:""}<rect x="${x}" y="${T}" width="${iw}" height="${ph+B}" fill="transparent"/><rect class="cin" x="${cx-bw-1}" y="${T+ph-hi}" width="${bw}" height="${hi}" rx="3"/><rect class="cout" x="${cx+1}" y="${T+ph-ho}" width="${bw}" height="${ho}" rx="3"/><text class="axis" x="${cx}" y="${H-10}" text-anchor="middle">${safe(fm.format(new Date(d.m+"-01T12:00:00")).replace(".",""))}</text></g>`});
+  $("trend").innerHTML=`<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Recettes et dépenses des 12 derniers mois"${document.body.classList.contains("priv")?' style="filter:blur(7px)"':""}>${s}</svg>`;
+}
+function renderBars(){const fs=flowsFor(selectedMonth).filter(f=>f.type==="out");const map={};fs.forEach(f=>map[f.category]=(map[f.category]||0)+Number(f.amount));const rows=Object.entries(map).sort((a,b)=>b[1]-a[1]);
+  if(!rows.length){$("categoryBars").innerHTML='<div class="empty">Aucune dépense enregistrée pour ce mois.</div>';return}
+  const max=rows[0][1];$("categoryBars").innerHTML=rows.map(([c,v])=>`<div class="barrow"><span>${safe(c)}</span><div class="track"><div class="fill" style="width:${v/max*100}%"></div></div><span class="amount">${mh(v)}</span></div>`).join("")}
+function renderInsight(){const fs=flowsFor(selectedMonth),inc=sum(fs,"in"),out=sum(fs,"out"),bal=inc-out,prevOut=sum(flowsFor(monthAdd(selectedMonth,-1)),"out"),delta=out-prevOut,rec=recurringFor(selectedMonth);
+  $("monthInsight").innerHTML=`<div class="listitem"><span>Solde après mouvements</span><strong class="${bal>=0?'green':'red'}">${mh(bal)}</strong></div><div class="listitem"><span>Dépenses vs mois précédent</span><strong class="${delta<=0?'green':'red'}">${delta>0?'+':''}${mh(delta)}</strong></div><div class="listitem"><span>Engagements prévus</span><strong>${mh(rec.out)}</strong></div><div class="listitem"><span>Recettes récurrentes prévues</span><strong class="green">${mh(rec.in)}</strong></div><p class="small muted">Les prévisions et les mouvements réellement enregistrés restent séparés.</p>`}
+function flowRows(arr,limit,editable){
+  const sorted=[...arr].sort((a,b)=>b.date.localeCompare(a.date)),shown=sorted.slice(0,limit||sorted.length);
+  if(!sorted.length)return '<div class="empty">Aucun mouvement à afficher.</div>';
+  const opts=sel=>vault.categories.map(c=>`<option value="${safe(c.name)}"${c.name===sel?" selected":""}>${safe(c.name)}</option>`).join("");
+  return `<div style="overflow-x:auto"><table><thead><tr><th>Date</th><th>Nature</th><th>Catégorie</th><th>Libellé</th><th style="text-align:right">Montant</th><th></th></tr></thead><tbody>${shown.map(f=>`<tr><td>${safe(f.date)}</td><td><span class="pill ${f.type}">${f.type==="in"?"Recette":"Dépense"}</span></td><td>${editable?`<select data-flow-cat="${safe(f.id)}" aria-label="Catégorie">${opts(f.category)}</select>`:safe(f.category)}</td><td>${safe(f.label||"—")}</td><td class="num ${f.type==="in"?"green":"red"}">${f.type==="in"?"+":"−"}${mh(f.amount)}</td><td><button class="danger" style="padding:5px 8px" data-del-flow="${safe(f.id)}" aria-label="Supprimer">×</button></td></tr>`).join("")}</tbody></table></div>${sorted.length>shown.length?`<p class="small muted">${shown.length} lignes affichées sur ${sorted.length} — affine les filtres pour voir les autres.</p>`:""}`}
+function fillFilter(){const sel=$("flFilterCat"),cur=sel.value;sel.innerHTML='<option value="">Toutes les catégories</option>'+vault.categories.map(c=>`<option value="${safe(c.name)}">${safe(c.name)}</option>`).join("");sel.value=vault.categories.some(c=>c.name===cur)?cur:""}
+function renderFlowTable(){let arr=vault.flows;if($("flFilterMonth").value==="sel")arr=arr.filter(f=>f.date.slice(0,7)===selectedMonth);const fc=$("flFilterCat").value;if(fc)arr=arr.filter(f=>f.category===fc);
+  $("flowCount").textContent=arr.length+" / "+vault.flows.length+" mouvement(s)";$("flowTable").innerHTML=flowRows(arr,300,true)}
+function renderRecent(){$("recent").innerHTML=flowRows(flowsFor(selectedMonth),6,false)}
+const FREQ={monthly:"Mensuelle",quarterly:"Trimestrielle",yearly:"Annuelle"};
+function renderRules(){if(!vault.recurrences.length){$("ruleList").innerHTML='<div class="empty">Aucun engagement récurrent défini.</div>';return}
+  $("ruleList").innerHTML=vault.recurrences.map(r=>`<div class="listitem"><div><strong>${safe(r.label||r.category)} <span class="pill ${r.type}">${r.type==="in"?"Recette":"Dépense"}</span></strong><small>${safe(r.category)} · ${FREQ[r.freq]} · jour ${r.day} · depuis ${safe(r.start)}${r.end?" · jusqu'à "+safe(r.end):""}</small></div><div style="display:flex;align-items:center;gap:10px"><strong>${mh(r.amount)}</strong><button class="danger" data-del-rule="${safe(r.id)}">Supprimer</button></div></div>`).join("")}
+function renderForecast(){const n=Number($("horizon").value),months=Array.from({length:n},(_,i)=>monthAdd(selectedMonth,i));let totals={in:0,out:0};
+  const rows=months.map(m=>{const r=recurringFor(m);totals.in+=r.in;totals.out+=r.out;return {m,...r}});
+  $("forecastMetrics").innerHTML=[["Recettes prévues",totals.in,"green"],["Dépenses prévues",totals.out,"red"],["Solde prévisionnel",totals.in-totals.out,totals.in>=totals.out?"green":"red"],["Moyenne mensuelle",(totals.out-totals.in)/n,"amber"]].map(x=>`<div class="card metric"><small>${x[0]}</small><strong class="${x[2]}">${mh(x[1])}</strong><em>${x[0]==="Moyenne mensuelle"?"Sorties nettes moyennes":n+" mois cumulés"}</em></div>`).join("");
+  $("forecastTable").innerHTML=`<div style="overflow-x:auto"><table><thead><tr><th>Mois</th><th style="text-align:right">Recettes prévues</th><th style="text-align:right">Dépenses prévues</th><th style="text-align:right">Solde prévu</th></tr></thead><tbody>${rows.map(r=>`<tr><td style="text-transform:capitalize">${monthLabel(r.m)}</td><td class="num green">${mh(r.in)}</td><td class="num red">${mh(r.out)}</td><td class="num ${(r.in-r.out)>=0?"green":"red"}">${mh(r.in-r.out)}</td></tr>`).join("")}</tbody></table></div>`}
+const KIND={out:"Dépenses",in:"Recettes",both:"Les deux"};
+function usage(name){const f=vault.flows.filter(x=>x.category===name);return{n:f.length,r:vault.recurrences.filter(x=>x.category===name).length,out:sum(f,"out"),in:sum(f,"in")}}
+function renderCats(){
+  $("catTable").innerHTML=`<div style="overflow-x:auto"><table><thead><tr><th>Catégorie</th><th>Utilisable pour</th><th style="text-align:right">Mouvements</th><th style="text-align:right">Dépenses cumulées</th><th style="text-align:right">Recettes cumulées</th><th style="text-align:right">Récurrences</th><th></th></tr></thead><tbody>${vault.categories.map(c=>{const u=usage(c.name);return `<tr><td><strong>${safe(c.name)}</strong></td><td><select data-kind="${safe(c.name)}" aria-label="Type de ${safe(c.name)}">${Object.entries(KIND).map(([k,l])=>`<option value="${k}"${k===c.kind?" selected":""}>${l}</option>`).join("")}</select></td><td class="num">${u.n}</td><td class="num">${mh(u.out)}</td><td class="num">${mh(u.in)}</td><td class="num">${u.r}</td><td style="white-space:nowrap;text-align:right"><button class="secondary" style="padding:6px 10px" data-ren="${safe(c.name)}">Renommer</button> <button class="danger" style="padding:6px 10px" data-delcat="${safe(c.name)}">Supprimer</button></td></tr>`}).join("")}</tbody></table></div>`;
+  $("ruleMem").innerHTML=vault.rules.length?vault.rules.map((r,i)=>`<div class="listitem"><span>« ${safe(r.k)} » → <strong>${safe(r.c)}</strong></span><button class="danger" data-delrule="${i}">Oublier</button></div>`).join("")+'<p class="small muted">Ces mots-clés sont stockés dans le coffre chiffré. N\'y mets jamais de nom propre ou de commerçant.</p>':'<div class="empty">Aucune règle mémorisée. Tu peux en enregistrer lors d\'un import (mots génériques uniquement).</div>';
+}
+function fillCats(id,type){const s=$(id),cur=s.value,list=catsFor(type);s.innerHTML=list.map(c=>`<option value="${safe(c.name)}">${safe(c.name)}</option>`).join("");if(list.some(c=>c.name===cur))s.value=cur}
+function renderAll(skipTable){fillCats("fCategory",$("fType").value);fillCats("rCategory",$("rType").value);fillFilter();renderMetrics();renderChart();renderBars();renderInsight();if(!skipTable)renderFlowTable();renderRecent();renderRules();renderForecast();renderCats()}
+function tab(name){document.querySelectorAll(".nav button").forEach(b=>b.classList.toggle("active",b.dataset.tab===name));["overview","flows","recurring","forecast","cats","import"].forEach(t=>$("tab-"+t).classList.toggle("hidden",t!==name))}
+
+/* ======================== Catégories : renommer, fusionner, supprimer ======================== */
+function reassign(from,to){vault.flows.forEach(f=>{if(f.category===from)f.category=to});vault.recurrences.forEach(r=>{if(r.category===from)r.category=to});vault.rules.forEach(r=>{if(r.c===from)r.c=to})}
+async function renameCat(old){
+  const r=await modal({title:"Renommer « "+old+" »",text:"Le nouveau nom s'applique à tous les mouvements, récurrences et règles existants.",fields:[{name:"n",label:"Nouveau nom",value:old,max:32}],ok:"Renommer"});
+  if(!r)return;const nn=cleanName(r.n);if(!nn||nn===old)return;
+  const cur=vault.categories.find(c=>c.name===old),other=vault.categories.find(c=>c!==cur&&nz(c.name)===nz(nn));let target=nn;
+  if(other){if(!confirm("« "+other.name+" » existe déjà. Fusionner « "+old+" » dans « "+other.name+" » ? Tous les mouvements seront reclassés."))return;
+    if(other.kind!==cur.kind)other.kind="both";vault.categories=vault.categories.filter(c=>c!==cur);target=other.name}
+  else cur.name=nn;
+  reassign(old,target);touch();renderAll();toast(other?"Catégories fusionnées.":"Catégorie renommée sur l'ensemble des mouvements.")}
+async function deleteCat(name){
+  if(vault.categories.length<2){toast("Au moins une catégorie doit rester.");return}
+  const u=usage(name);let target=null;
+  if(u.n+u.r>0){const others=vault.categories.filter(c=>c.name!==name);
+    const r=await modal({title:"Supprimer « "+name+" »",text:u.n+" mouvement(s) et "+u.r+" récurrence(s) seront reclassés dans la catégorie choisie.",fields:[{name:"t",label:"Reclasser dans",type:"select",value:(others.find(c=>c.name==="Autre")||others[0]).name,options:others.map(c=>({value:c.name,label:c.name}))}],ok:"Supprimer",danger:true});
+    if(!r)return;target=r.t}
+  else if(!confirm("Supprimer la catégorie « "+name+" » ?"))return;
+  if(target)reassign(name,target);else vault.rules=vault.rules.filter(r=>r.c!==name);
+  vault.categories=vault.categories.filter(c=>c.name!==name);touch();renderAll();toast("Catégorie supprimée.")}
+function addCategory(){const n=cleanName($("cName").value);if(!n){toast("Saisis un nom de catégorie.");return}if(catByName(n)){toast("Cette catégorie existe déjà.");return}
+  vault.categories.push({name:n,kind:$("cKind").value});$("cName").value="";touch();renderAll();toast("Catégorie ajoutée.")}
+
+/* ======================== Détection de récurrences ======================== */
+function detectRecurring(){
+  const g={};vault.flows.forEach(f=>{const k=JSON.stringify([f.type,f.category,f.amount.toFixed(2)]);(g[k]=g[k]||[]).push(f)});
+  const latest=vault.flows.reduce((m,f)=>f.date.slice(0,7)>m?f.date.slice(0,7):m,"");const cur=monthNow();const ref=latest>cur?cur:latest;const out=[];
+  for(const [k,arr] of Object.entries(g)){
+    const [type,category,amt]=JSON.parse(k),months=[...new Set(arr.map(f=>f.date.slice(0,7)))].sort();
+    const run=[months[months.length-1]];for(let i=months.length-2;i>=0;i--){if(monthAdd(months[i],1)===run[0])run.unshift(months[i]);else break}
+    if(run.length<3||monthDiff(run[run.length-1],ref)>1)continue;
+    if(vault.recurrences.some(r=>r.active!==false&&r.type===type&&r.category===category&&Math.abs(r.amount-Number(amt))<0.005&&(!r.end||r.end>=ref)))continue;
+    const days=arr.filter(f=>f.date.slice(0,7)>=run[0]).map(f=>+f.date.slice(8,10)).sort((a,b)=>a-b);
+    out.push({type,category,amount:Number(amt),start:run[0],day:Math.min(28,days[Math.floor(days.length/2)]||1),n:run.length});
+  }
+  return out.sort((a,b)=>b.amount-a.amount)}
+function showDetect(){const list=detectRecurring(),box=$("detectBox");box.classList.remove("hidden");
+  if(!list.length){box.innerHTML='<div class="empty">Aucune dépense ou recette récurrente détectée (même montant, même catégorie, au moins 3 mois consécutifs jusqu\'au mois courant).</div>';return}
+  box._list=list;box.innerHTML=`<div class="sectionhead"><h2>Récurrences détectées</h2><span class="muted small">Même montant et même catégorie, ≥ 3 mois consécutifs</span></div>${list.map((d,i)=>`<div class="listitem"><label style="display:flex;gap:10px;align-items:center;margin:0;font-size:14px;color:var(--ink);font-weight:600"><input type="checkbox" data-det="${i}" checked> ${safe(d.category)} <span class="pill ${d.type}">${d.type==="in"?"Recette":"Dépense"}</span> <small class="muted" style="font-weight:400">${d.n} mois · jour ${d.day} · depuis ${safe(d.start)}</small></label><strong>${mh(d.amount)}</strong></div>`).join("")}<div class="formactions"><button class="secondary" id="detCancel">Fermer</button><button id="detAdd">Ajouter la sélection</button></div>`;
+  $("detCancel").onclick=()=>box.classList.add("hidden");
+  $("detAdd").onclick=()=>{let n=0;box.querySelectorAll("[data-det]:checked").forEach(c=>{const d=list[+c.dataset.det];vault.recurrences.push({id:uid(),type:d.type,amount:d.amount,category:d.category,label:"",freq:"monthly",day:d.day,start:d.start,end:null,active:true});n++});if(n){touch();renderAll();toast(n+" récurrence(s) ajoutée(s).")}box.classList.add("hidden")}}
+
+/* ======================== Lecture de fichiers : ZIP / ODS / XLSX / CSV ======================== */
+const NS={table:"urn:oasis:names:tc:opendocument:xmlns:table:1.0",office:"urn:oasis:names:tc:opendocument:xmlns:office:1.0",text:"urn:oasis:names:tc:opendocument:xmlns:text:1.0",r:"http://schemas.openxmlformats.org/officeDocument/2006/relationships"};
+const LIM={file:25*1024*1024,unzip:150*1024*1024,rows:8000,cols:80,items:60000};
+async function inflate(data,limit){
+  const rd=new Blob([data]).stream().pipeThrough(new DecompressionStream("deflate-raw")).getReader(),parts=[];let tot=0;
+  for(;;){const {done,value}=await rd.read();if(done)break;tot+=value.length;if(tot>limit){rd.cancel();throw Error("Fichier trop volumineux une fois décompressé.")}parts.push(value)}
+  const o=new Uint8Array(tot);let p=0;for(const x of parts){o.set(x,p);p+=x.length}return o}
+function unzip(buf){
+  const u8=new Uint8Array(buf),dv=new DataView(buf);let e=-1;
+  for(let i=u8.length-22;i>=Math.max(0,u8.length-22-65557);i--)if(dv.getUint32(i,true)===0x06054b50){e=i;break}
+  if(e<0)throw Error("Archive illisible : ce n'est ni un .ods ni un .xlsx valide.");
+  const n=dv.getUint16(e+10,true);let p=dv.getUint32(e+16,true);const files=new Map();
+  for(let i=0;i<n;i++){if(p+46>u8.length||dv.getUint32(p,true)!==0x02014b50)throw Error("Archive corrompue.");
+    const method=dv.getUint16(p+10,true),csize=dv.getUint32(p+20,true),usize=dv.getUint32(p+24,true),nl=dv.getUint16(p+28,true),xl=dv.getUint16(p+30,true),cl=dv.getUint16(p+32,true),off=dv.getUint32(p+42,true);
+    files.set(dec.decode(u8.subarray(p+46,p+46+nl)),{method,csize,usize,off});p+=46+nl+xl+cl}
+  return {has:n=>files.has(n),async read(name){const f=files.get(name);if(!f)throw Error("Élément manquant : "+name);
+    if(f.usize>LIM.unzip)throw Error("Fichier trop volumineux une fois décompressé.");
+    const nl=dv.getUint16(f.off+26,true),xl=dv.getUint16(f.off+28,true),s=f.off+30+nl+xl,data=u8.subarray(s,s+f.csize);
+    if(f.method===0)return data;if(f.method===8)return inflate(data,LIM.unzip);throw Error("Compression non prise en charge.")}}}
+const parseXML=s=>{const d=new DOMParser().parseFromString(s,"application/xml");if(d.getElementsByTagName("parsererror").length)throw Error("Contenu XML invalide.");return d};
+function parseODS(xml){
+  const doc=parseXML(xml),sheets=[];
+  for(const t of doc.getElementsByTagNameNS(NS.table,"table")){
+    const name=t.getAttributeNS(NS.table,"name"),rows=[];
+    for(const tr of t.getElementsByTagNameNS(NS.table,"table-row")){
+      if(rows.length>=LIM.rows)break;
+      const row=[];
+      for(const c of tr.children){
+        const ln=c.localName;if(ln!=="table-cell"&&ln!=="covered-table-cell")continue;
+        const rc=+c.getAttributeNS(NS.table,"number-columns-repeated")||1,vt=c.getAttributeNS(NS.office,"value-type");let v=null;
+        if(vt==="float"||vt==="percentage"||vt==="currency")v=+c.getAttributeNS(NS.office,"value");
+        else if(vt==="date")v=c.getAttributeNS(NS.office,"date-value");
+        else if(vt==="string"){v=[...c.getElementsByTagNameNS(NS.text,"p")].map(p=>p.textContent).join(" ").trim();if(v==="")v=null}
+        const k=Math.min(rc,LIM.cols-row.length);for(let i=0;i<k;i++)row.push(v);
+      }
+      while(row.length&&row[row.length-1]===null)row.pop();
+      const rr=+tr.getAttributeNS(NS.table,"number-rows-repeated")||1;
+      for(let i=0;i<Math.min(rr,row.length?20:2)&&rows.length<LIM.rows;i++)rows.push(row.slice());
+    }
+    while(rows.length&&!rows[rows.length-1].length)rows.pop();
+    sheets.push({name,rows});
+  }
+  return sheets}
+const colIdx=ref=>{let n=0;for(const ch of ref.replace(/[^A-Z]/gi,"").toUpperCase())n=n*26+ch.charCodeAt(0)-64;return n-1};
+async function parseXLSX(z){
+  const T=async n=>dec.decode(await z.read(n)),wb=parseXML(await T("xl/workbook.xml")),rels=parseXML(await T("xl/_rels/workbook.xml.rels")),relMap={};
+  for(const r of rels.getElementsByTagNameNS("*","Relationship"))relMap[r.getAttribute("Id")]=r.getAttribute("Target");
+  const ss=[];if(z.has("xl/sharedStrings.xml")){const d=parseXML(await T("xl/sharedStrings.xml"));for(const si of d.getElementsByTagNameNS("*","si")){let s="";for(const t of si.getElementsByTagNameNS("*","t")){if(t.parentNode.localName==="rPh")continue;s+=t.textContent}ss.push(s)}}
+  const out=[];
+  for(const sh of wb.getElementsByTagNameNS("*","sheet")){
+    let tgt=relMap[sh.getAttributeNS(NS.r,"id")];if(!tgt)continue;tgt=tgt.startsWith("/")?tgt.slice(1):"xl/"+tgt;if(!z.has(tgt))continue;
+    const d=parseXML(await T(tgt)),rows=[];
+    for(const rw of d.getElementsByTagNameNS("*","row")){
+      const ri=(+rw.getAttribute("r")||rows.length+1)-1;if(ri>=LIM.rows)break;const row=[];
+      for(const c of rw.getElementsByTagNameNS("*","c")){const ci=colIdx(c.getAttribute("r")||"");if(ci<0||ci>=LIM.cols)continue;const t=c.getAttribute("t"),vEl=c.getElementsByTagNameNS("*","v")[0];let v=null;
+        if(t==="s"&&vEl)v=ss[+vEl.textContent]??null;else if(t==="inlineStr")v=[...c.getElementsByTagNameNS("*","t")].map(x=>x.textContent).join("");else if(t==="str"&&vEl)v=vEl.textContent;else if(t==="b"||t==="e")v=null;else if(vEl&&vEl.textContent!=="")v=Number(vEl.textContent);
+        if(typeof v==="string"){v=v.trim();if(v==="")v=null}row[ci]=v}
+      while(rows.length<ri)rows.push([]);rows[ri]=Array.from(row,x=>x??null);
+    }
+    out.push({name:sh.getAttribute("name"),rows});
+  }
+  return out}
+function parseCSV(text){
+  text=text.replace(/^﻿/,"");const first=text.split(/\r?\n/,1)[0]||"";const delim=[";","\t",","].map(d=>[d,first.split(d).length]).sort((a,b)=>b[1]-a[1])[0][0];
+  const rows=[];let row=[],cur="",q=false;
+  for(let i=0;i<text.length;i++){const ch=text[i];
+    if(q){if(ch==='"'){if(text[i+1]==='"'){cur+='"';i++}else q=false}else cur+=ch}
+    else if(ch==='"')q=true;else if(ch===delim){row.push(cur);cur=""}else if(ch==="\n"||ch==="\r"){if(ch==="\r"&&text[i+1]==="\n")i++;row.push(cur);cur="";rows.push(row);row=[];if(rows.length>=LIM.rows)break}else cur+=ch}
+  if(cur!==""||row.length){row.push(cur);rows.push(row)}
+  return [{name:"CSV",rows:rows.map(r=>r.slice(0,LIM.cols).map(x=>{x=x.trim();return x===""?null:x}))}]}
+async function readWorkbook(file){
+  if(file.size>LIM.file)throw Error("Fichier trop volumineux (25 Mo maximum).");
+  const buf=await file.arrayBuffer(),u8=new Uint8Array(buf);
+  if(u8[0]===0x50&&u8[1]===0x4b){const z=unzip(buf);
+    if(z.has("content.xml"))return parseODS(dec.decode(await z.read("content.xml")));
+    if(z.has("xl/workbook.xml"))return parseXLSX(z);
+    throw Error("Archive reconnue mais pas un tableur .ods ou .xlsx.")}
+  if(u8[0]===0xD0&&u8[1]===0xCF)throw Error("Ancien format .xls non pris en charge : enregistre le fichier en .xlsx ou .ods.");
+  return parseCSV(dec.decode(buf))}
+
+/* ======================== Analyse statique des feuilles ======================== */
+const MONTHS_FR=["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"];
+const MONTHS=["janvier","fevrier","mars","avril","mai","juin","juillet","aout","septembre","octobre","novembre","decembre"];
+const MALIAS={};MONTHS.forEach((m,i)=>MALIAS[m]=i);Object.entries({janv:0,jan:0,fev:1,fevr:1,mar:2,avr:3,juil:6,aou:7,sep:8,sept:8,oct:9,nov:10,dec:11}).forEach(([k,v])=>MALIAS[k]=v);
+const monthOfCell=v=>typeof v==="string"&&MALIAS[nz(v)]!==undefined?MALIAS[nz(v)]:null;
+function monthInName(name){const n=nz(name);let best=null;for(let i=0;i<12;i++){const k=n.indexOf(MONTHS[i]);if(k>=0&&(best===null||MONTHS[i].length>MONTHS[best].length))best=i}return best}
+function num(v){if(typeof v==="number")return Number.isFinite(v)?v:null;if(v==null)return null;let s=String(v).replace(/[\s €$]/g,"");if(!/^[-+]?[\d.,]+$/.test(s))return null;const lc=s.lastIndexOf(","),ld=s.lastIndexOf(".");
+  if(lc>-1&&ld>-1)s=lc>ld?s.replace(/\./g,"").replace(",","."):s.replace(/,/g,"");else if(lc>-1)s=s.replace(",",".");else if((s.match(/\./g)||[]).length>1)s=s.replace(/\./g,"");
+  const n=Number(s);return Number.isFinite(n)?n:null}
+const dstr=(y,m,d)=>y+"-"+pad(m)+"-"+pad(d);
+function parseDate(v){
+  if(typeof v==="number"&&v>20000&&v<80000){const d=new Date(Date.UTC(1899,11,30)+Math.round(v)*86400000);return dstr(d.getUTCFullYear(),d.getUTCMonth()+1,d.getUTCDate())}
+  if(typeof v!=="string")return null;let m=v.match(/^(\d{4})-(\d{2})-(\d{2})/);if(m)return m[0];
+  m=v.match(/^(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{4}|\d{2})(?!\d)/);if(m){const y=m[3].length===2?2000+ +m[3]:+m[3];if(+m[2]>=1&&+m[2]<=12&&+m[1]>=1&&+m[1]<=31)return dstr(y,+m[2],+m[1])}return null}
+function detectFlat(rows){
+  for(let r=0;r<Math.min(rows.length,10);r++){const h=(rows[r]||[]).map(x=>nz(x)),f=re=>h.findIndex(x=>re.test(x));
+    const date=f(/^date/),amount=f(/^(montant|amount|somme|valeur)/),debit=f(/^(debit|depense|sortie)/),credit=f(/^(credit|recette|entree)/);
+    if(date>=0&&(amount>=0||debit>=0||credit>=0))return{hdr:r,date,amount,debit,credit,cat:f(/^(categorie|category|rubrique)/),label:f(/^(libelle|label|description|intitule|nom|objet)/),type:f(/^(type|nature|sens)/)}}
+  return null}
+function detectMatrix(rows){
+  for(let r=0;r<Math.min(rows.length,12);r++){const cols=[],seen=new Set();(rows[r]||[]).forEach((v,c)=>{const m=monthOfCell(v);if(m!==null&&!seen.has(m)){seen.add(m);cols.push([c,m])}});if(cols.length>=6)return{hdr:r,cols}}
+  return null}
+function detectLedger(rows){
+  for(let r=0;r<Math.min(rows.length,6);r++){const h=(rows[r]||[]).map(x=>nz(x));
+    if(!h.some(x=>x.includes("recette"))||!h.some(x=>x.includes("depense")))continue;
+    const blocks=[];h.forEach((n,c)=>{if(!n)return;if(n.includes("recette"))blocks.push({c,type:"in",kind:"rec"});else if(n.includes("depense"))blocks.push({c,type:"out",kind:n.includes("non oblig")?"var":"obl"});else if(n.includes("visa")||n.includes("carte"))blocks.push({c,type:"out",kind:"visa"})});
+    const first=Math.min(...blocks.map(b=>b.c));let dayCol=0,best=0;
+    for(let c=0;c<first;c++){let k=0;for(let i=r+1;i<rows.length;i++){const v=num((rows[i]||[])[c]);if(v!==null&&Number.isInteger(v)&&v>=1&&v<=31)k++}if(k>best){best=k;dayCol=c}}
+    return{hdr:r,blocks,dayCol}}
+  return null}
+function analyzeSheet(sh){
+  const rows=sh.rows,cy=new Date().getFullYear();sh.use=false;sh.year=null;sh.month=null;sh.note="";
+  const yn=(sh.name.match(/(20\d\d)/)||[])[1];
+  const fl=detectFlat(rows);if(fl){sh.layout="flat";sh.info=fl;sh.use=true;return}
+  const mx=detectMatrix(rows);if(mx){sh.layout="matrix";sh.info=mx;sh.year=yn?+yn:null;if(!sh.year){for(let r=0;r<=mx.hdr&&!sh.year;r++)for(const v of rows[r]||[]){if(typeof v==="number"&&v>=2000&&v<=2100){sh.year=v;break}}}
+    if(!sh.year){sh.year=cy;sh.note="Année non trouvée : à vérifier."}sh.use=true;return}
+  const lg=detectLedger(rows);if(lg){sh.layout="ledger";sh.info=lg;sh.month=monthInName(sh.name);sh.year=yn?+yn:null;if(!sh.year){sh.year=cy;sh.note="Année non trouvée : à vérifier."}if(sh.month===null)sh.note="Choisis le mois.";sh.use=sh.month!==null;return}
+  sh.layout="none";sh.note="Mise en page non reconnue : feuille ignorée, son contenu n'est pas importé."}
+const CALC=/^(total|t ?depense|tdepense|theorie|solde|ecart|fin de mois|deb mois|do|ndo|moyenne|reste|livret|report|variation|effectif|objectif|difference)\b/;
+function extractSheet(sh){
+  const out=[],rows=sh.rows;if(!sh.use)return out;
+  if(sh.layout==="matrix"){const{hdr,cols}=sh.info;
+    for(let r=hdr+1;r<rows.length;r++){const name=(rows[r]||[])[0];if(typeof name!=="string"||!name.trim())break;const nm=nz(name);if(/moyenne|variation/.test(nm))break;
+      const type=/\b(entree|salaire|revenu|recette)s?\b/.test(nm)?"in":"out";
+      for(const[c,m]of cols){const v=num(rows[r][c]);if(v===null||v===0)continue;out.push({date:dstr(sh.year,m+1,15),type:v<0?(type==="in"?"out":"in"):type,amount:Math.abs(v),key:"m|"+type+"|"+nm,disp:name.trim(),cls:"m",layout:"matrix"})}}}
+  else if(sh.layout==="ledger"){if(sh.month===null)return out;const{hdr,blocks,dayCol}=sh.info,dim=new Date(sh.year,sh.month+1,0).getDate();let day=1;
+    for(let r=hdr+1;r<rows.length;r++){const row=rows[r]||[],dv=num(row[dayCol]);if(dv!==null&&Number.isInteger(dv)&&dv>=1&&dv<=31)day=dv;
+      for(const b of blocks){const label=row[b.c];if(typeof label!=="string")continue;const ln=nz(label);if(!ln||["nom","somme","depense","depenses","recette"].includes(ln))continue;const a=num(row[b.c+1]);if(a===null||a===0)continue;
+        out.push({date:dstr(sh.year,sh.month+1,Math.min(day,dim)),type:a<0?(b.type==="in"?"out":"in"):b.type,amount:Math.abs(a),key:"l|"+b.type+"|"+ln,disp:label.trim(),cls:"l",layout:"ledger"})}}}
+  else if(sh.layout==="flat"){const i=sh.info;
+    const signed=rows.slice(i.hdr+1).some(r=>i.amount>=0&&(num((r||[])[i.amount])||0)<0);
+    for(let r=i.hdr+1;r<rows.length;r++){const row=rows[r]||[],date=parseDate(row[i.date]);if(!date)continue;let type=null,a=null;
+      if(i.debit>=0&&num(row[i.debit])){a=num(row[i.debit]);type="out"}else if(i.credit>=0&&num(row[i.credit])){a=num(row[i.credit]);type="in"}
+      else if(i.amount>=0){a=num(row[i.amount]);if(a===null||a===0)continue;
+        const tv=i.type>=0?nz(row[i.type]):"";if(/^(deb|dep|sort|out|retrait|paiement)/.test(tv))type="out";else if(/^(cred|rec|entr|in|virement recu|depot)/.test(tv))type="in";
+        else type=signed?(a<0?"out":"in"):"out"}
+      if(a===null||a===0)continue;if(a<0){a=-a;if(i.amount<0||(i.debit<0&&i.credit<0)){}}
+      const src=i.cat>=0&&row[i.cat]?[row[i.cat],"m"]:i.label>=0&&row[i.label]?[row[i.label],"l"]:["(sans catégorie)","m"],nm=nz(src[0])||"sans categorie";
+      out.push({date,type,amount:a,key:src[1]+"|"+type+"|"+nm,disp:String(src[0]).trim().slice(0,40),cls:src[1],layout:"flat"})}}
+  return out.slice(0,LIM.items)}
+
+/* ======================== Reconnaissance des catégories ======================== */
+const DICT=[
+["Épargne",["epargne","livret","pel","placement","assurance vie"]],
+["Mutuelle",["mutuelle","mgen","complementaire sante"]],
+["Assurances",["assurance","assurances","ass","cnp","maif","macif","axa","gan"]],
+["Téléphonie",["telephonie","telephone","mobile","forfait","box","internet","orange","sfr","bouygues","free"]],
+["Santé",["sante","medecin","pharmacie","psy","psychologue","dentiste","irm","examen","examens","radio","optique","kine","hopital","analyses","medical"]],
+["Logement",["logement","loyer","edf","engie","eau","electricite","gaz","charges","copropriete"]],
+["Banque",["banque","frais bancaires","agios","cotisation carte"]],
+["Voiture",["voiture","renault","essence","carburant","garage","controle technique","vidange","pneu","pret auto","auto"]],
+["Transports",["transport","transports","parking","stationnement","peage","sncf","navigo","train","bus","metro","taxi","uber","velo","avion"]],
+["Restaurants",["restaurant","restaurants","resto","bk","mcdo","kfc","cafe","brasserie","pizza","deliveroo"]],
+["Alimentation",["nourriture","alimentation","courses","course","monoprix","picard","super u","carrefour","leclerc","lidl","auchan","intermarche","franprix","casino","boulangerie","pain","marche","primeur","boucherie"]],
+["Maison",["maison","travaux","bricolage","leroy merlin","castorama","ikea","meuble","jardin","entretien"]],
+["Loisirs",["loisirs","loisir","cinema","jeu","jeux","livre","livres","fnac","spotify","netflix","cadeau","cadeaux","fleurs","sport","concert","voyage","vacances","abonnement"]],
+["Revenus",["revenu","revenus","salaire","entree","virement","prime","remboursement","recette","caf","allocations"]]];
+function suggest(it){
+  const n=nz(it.disp),pad=" "+n+" ",toks=new Set(n.split(" ")),type=it.key.split("|")[1],exists=c=>c&&catByName(c);
+  if(it.cls==="m"&&CALC.test(n))return{t:"__ignore__",conf:"calc"};
+  if(/^(carte (visa|bancaire|bleue|cb)|visa|cb)$/.test(n))return{t:"__ignore__",conf:"dup"};
+  const rule=vault.rules.find(r=>pad.includes(" "+r.k+" "));if(rule&&exists(rule.c))return{t:"c:"+catByName(rule.c).name,conf:"rule"};
+  const ex=vault.categories.find(c=>nz(c.name).replace(/s$/,"")===n.replace(/s$/,""));if(ex)return{t:"c:"+ex.name,conf:"exact"};
+  const hits=[];for(const[cat,words]of DICT){const c=catByName(cat);if(!c)continue;if(type==="in"&&c.kind==="out")continue;if(words.some(w=>w.includes(" ")?pad.includes(" "+w+" "):toks.has(w)))hits.push(c)}
+  if(hits.length)return{t:"c:"+hits[0].name,conf:hits.length>1?"none":"dict"};
+  if(type==="in"){const c=catByName("Revenus")||catByName("Autre");return c?{t:"c:"+c.name,conf:"none"}:{t:"__ignore__",conf:"none"}}
+  if(it.cls==="m")return{t:"__new__",conf:"none"};
+  const a=catByName("Autre");return a?{t:"c:"+a.name,conf:"none"}:{t:"__ignore__",conf:"none"}}
+
+/* ======================== Interface d'import ======================== */
+const LAYOUTS={matrix:"Tableau annuel (catégories × mois)",ledger:"Journal mensuel (jour par jour)",flat:"Liste de mouvements",none:"Non reconnue"};
+function resetImportUI(){$("impBody").classList.add("hidden");$("impFile").value="";$("impSheets").innerHTML="";$("impMap").innerHTML="";$("impPreview").innerHTML="";$("impOpts").innerHTML=""}
+async function loadImport(file){
+  try{if(!file)return;toast("Analyse locale du fichier…");const sheets=await readWorkbook(file);if(!sheets.length)throw Error("Aucune feuille trouvée.");
+    sheets.forEach(analyzeSheet);imp={sheets,map:{},rem:{},items:[],opts:{future:false,replace:false}};
+    $("impBody").classList.remove("hidden");renderImpSheets();impRecompute();toast("Analyse terminée : vérifie la correspondance des catégories.")}
+  catch(e){imp=null;resetImportUI();toast("Import impossible : "+e.message)}}
+function renderImpSheets(){
+  const cy=new Date().getFullYear();
+  $("impSheets").innerHTML=`<div style="overflow-x:auto"><table><thead><tr><th>Importer</th><th>Feuille</th><th>Mise en page détectée</th><th>Période</th><th style="text-align:right">Lignes</th></tr></thead><tbody>${imp.sheets.map((s,i)=>{
+    const per=s.layout==="matrix"?`<input type="number" data-yr="${i}" value="${s.year}" min="2000" max="2100" style="width:90px" aria-label="Année">`:s.layout==="ledger"?`<span style="display:flex;gap:6px"><select data-mo="${i}" style="width:130px" aria-label="Mois"><option value="">—</option>${MONTHS_FR.map((m,k)=>`<option value="${k}"${s.month===k?" selected":""}>${m}</option>`).join("")}</select><input type="number" data-yr="${i}" value="${s.year}" min="2000" max="2100" style="width:90px" aria-label="Année"></span>`:s.layout==="flat"?'<span class="muted">selon les dates</span>':"—";
+    return `<tr><td><input type="checkbox" data-use="${i}" ${s.use?"checked":""} ${s.layout==="none"?"disabled":""} aria-label="Importer ${safe(s.name)}"></td><td><strong>${safe(s.name)}</strong>${s.note?`<br><span class="small ${s.layout==="none"?"muted":"amber"}">${safe(s.note)}</span>`:""}</td><td><span class="pill ${s.layout==="none"?"":"both"}">${LAYOUTS[s.layout]}</span></td><td>${per}</td><td class="num" id="cnt${i}"></td></tr>`}).join("")}</tbody></table></div>`}
+function impRecompute(){
+  imp.sheets.forEach((s,i)=>{s._items=extractSheet(s);const c=$("cnt"+i);if(c)c.textContent=s.use?s._items.length:"—"});
+  imp.items=imp.sheets.flatMap(s=>s._items);
+  imp.keys={};imp.items.forEach(it=>{const k=imp.keys[it.key]||(imp.keys[it.key]={disp:it.disp,cls:it.cls,type:it.key.split("|")[1],n:0,total:0,sg:null});k.n++;k.total+=it.amount;if(!k.sg)k.sg=suggest(it);if(!(it.key in imp.map))imp.map[it.key]=k.sg.t});
+  renderImpMap();renderImpOpts();renderImpPreview()}
+const RANK={none:0,dup:1,rule:2,exact:2,dict:2,calc:3};
+function renderImpMap(){
+  const only=$("impOnlyCheck").checked,keys=Object.entries(imp.keys).filter(([,k])=>!only||k.sg.conf==="none"||k.sg.conf==="dup").sort((a,b)=>RANK[a[1].sg.conf]-RANK[b[1].sg.conf]||b[1].total-a[1].total);
+  if(!keys.length){$("impMap").innerHTML='<div class="empty">Rien à faire correspondre.</div>';return}
+  const CONF={none:'<span class="pill warn">À vérifier</span>',dup:'<span class="pill warn">Règlement de carte</span>',calc:'<span class="pill">Ligne calculée</span>',rule:'<span class="pill both">Règle</span>',exact:'<span class="pill in">Reconnue</span>',dict:'<span class="pill in">Reconnue</span>'};
+  $("impMap").innerHTML=`<p class="small muted" style="margin-top:0">Les textes ci-dessous ne servent qu'à cette étape : ils ne sont pas enregistrés dans le coffre. « Règlement de carte » est ignoré par défaut pour éviter de compter deux fois les achats déjà détaillés.</p><div class="scroll"><table><thead><tr><th>Texte du fichier</th><th>Nature</th><th style="text-align:right">Lignes</th><th style="text-align:right">Total</th><th>Statut</th><th>Catégorie cible</th><th title="Mémoriser un mot-clé générique">Mémoriser</th></tr></thead><tbody>${keys.map(([key,k])=>{const cur=imp.map[key];
+    return `<tr><td><span class="m">${safe(k.disp)}</span></td><td><span class="pill ${k.type}">${k.type==="in"?"Recette":"Dépense"}</span></td><td class="num">${k.n}</td><td class="num">${mh(k.total)}</td><td>${CONF[k.sg.conf]}</td><td><select data-map="${safe(key)}" aria-label="Catégorie pour ${safe(k.disp)}"><option value="__ignore__"${cur==="__ignore__"?" selected":""}>— Ignorer —</option>${k.cls==="m"?`<option value="__new__"${cur==="__new__"?" selected":""}>➕ Créer « ${safe(cleanName(k.disp))} »</option>`:""}${vault.categories.map(c=>`<option value="c:${safe(c.name)}"${cur==="c:"+c.name?" selected":""}>${safe(c.name)}</option>`).join("")}</select></td><td style="text-align:center">${k.cls==="l"?`<input type="checkbox" data-rem="${safe(key)}" ${imp.rem[key]?"checked":""} aria-label="Mémoriser la règle">`:""}</td></tr>`}).join("")}</tbody></table></div>`}
+function renderImpOpts(){
+  $("impOpts").innerHTML=`<div style="display:grid;gap:8px;margin-bottom:12px"><label style="display:flex;gap:8px;align-items:center;margin:0;color:var(--ink);font-size:13px;font-weight:500"><input type="checkbox" id="optFuture" ${imp.opts.future?"checked":""}> Importer aussi les mois futurs (prévisionnels, après ${safe(monthLabel(monthNow()))})</label><label style="display:flex;gap:8px;align-items:center;margin:0;color:var(--ink);font-size:13px;font-weight:500"><input type="checkbox" id="optReplace" ${imp.opts.replace?"checked":""}> Remplacer aussi les mouvements détaillés d'un import précédent sur les mêmes mois (sinon, les doublons exacts sont simplement ignorés)</label></div>`}
+function buildImport(){
+  const cur=monthNow(),notes=[],mOf=f=>f.date.slice(0,7);let items=imp.items;
+  const detail=new Set([...items.filter(i=>i.layout!=="matrix").map(i=>i.date.slice(0,7)),...vault.flows.filter(f=>f.src==="import").map(mOf)]);
+  items=items.filter(i=>i.layout!=="matrix"||!detail.has(i.date.slice(0,7)));
+  const droppedM=new Set(imp.items.filter(i=>i.layout==="matrix"&&detail.has(i.date.slice(0,7))).map(i=>i.date.slice(0,7)));
+  if(droppedM.size)notes.push("Mois déjà détaillés (journal, liste ou import précédent), donc écartés du tableau annuel pour éviter les doublons : "+[...droppedM].sort().join(", ")+".");
+  if(!imp.opts.future){const n=items.length;items=items.filter(i=>i.date.slice(0,7)<=cur);if(n>items.length)notes.push((n-items.length)+" ligne(s) de mois futurs non importée(s).")}
+  const all=[],agg=new Map();let ignored=0;
+  items.forEach(it=>{const t=imp.map[it.key];if(!t||t==="__ignore__"){ignored++;return}
+    const cat=t==="__new__"?cleanName(it.disp):t.slice(2);if(!cat){ignored++;return}
+    if(it.layout==="matrix"){const k=JSON.stringify([it.date,it.type,cat]);agg.set(k,(agg.get(k)||0)+it.amount)}else all.push({date:it.date,type:it.type,amount:round2(it.amount),category:cat,agg:false})});
+  agg.forEach((a,k)=>{const[date,type,category]=JSON.parse(k);if(round2(a)>0)all.push({date,type,amount:round2(a),category,agg:true})});
+  if(ignored)notes.push(ignored+" ligne(s) ignorée(s) par ton choix.");
+  const months=new Set(all.map(mOf)),rmIds=new Set(vault.flows.filter(f=>months.has(mOf(f))&&(f.src==="import-agg"||(imp.opts.replace&&f.src==="import"))).map(f=>f.id));
+  const key=f=>f.date+"|"+f.type+"|"+f.amount.toFixed(2)+"|"+nz(f.category),pool=new Map();
+  vault.flows.forEach(f=>{if(f.src&&!rmIds.has(f.id)){const k=key(f);pool.set(k,(pool.get(k)||0)+1)}});
+  let dup=0;const flows=all.filter(f=>{const k=key(f),c=pool.get(k)||0;if(c>0){pool.set(k,c-1);dup++;return false}return true});
+  if(dup)notes.push(dup+" mouvement(s) déjà présent(s) (import précédent) ignoré(s) : pas de doublon.");
+  return{flows,notes,rmIds}}
+function renderImpPreview(){
+  const{flows,notes,rmIds}=buildImport(),by={};flows.forEach(f=>{const m=f.date.slice(0,7),o=by[m]||(by[m]={n:0,i:0,o:0});o.n++;o[f.type==="in"?"i":"o"]+=f.amount});
+  const ms=Object.keys(by).sort(),newCats=[...new Set(flows.map(f=>f.category).filter(c=>!catByName(c)))];
+  let h="";if(notes.length)h+=`<div class="notice section" style="margin-top:0">${notes.map(safe).join("<br>")}</div>`;
+  if(rmIds.size)h+=`<div class="notice warning section">${rmIds.size} mouvement(s) issus d'un import précédent seront remplacés sur ces mois.</div>`;
+  if(newCats.length)h+=`<div class="notice section">Catégories à créer : ${newCats.map(c=>"<strong>"+safe(c)+"</strong>").join(", ")}.</div>`;
+  h+=ms.length?`<div class="scroll section" style="max-height:300px"><table><thead><tr><th>Mois</th><th style="text-align:right">Mouvements</th><th style="text-align:right">Recettes</th><th style="text-align:right">Dépenses</th><th style="text-align:right">Solde</th></tr></thead><tbody>${ms.map(m=>`<tr><td style="text-transform:capitalize">${safe(monthLabel(m))}</td><td class="num">${by[m].n}</td><td class="num green">${mh(by[m].i)}</td><td class="num red">${mh(by[m].o)}</td><td class="num ${by[m].i>=by[m].o?"green":"red"}">${mh(by[m].i-by[m].o)}</td></tr>`).join("")}</tbody></table></div><p class="small muted">${flows.length} mouvement(s) à ajouter sur ${ms.length} mois.</p>`:'<div class="empty">Aucun nouveau mouvement à importer avec ces réglages.</div>';
+  $("impPreview").innerHTML=h;$("impCommit").disabled=!flows.length}
+function commitImport(){
+  const{flows,rmIds}=buildImport();if(!flows.length)return;
+  flows.forEach(f=>{let c=catByName(f.category);if(!c){c={name:f.category,kind:f.type==="in"?"in":"out"};vault.categories.push(c)}f.category=c.name});
+  const removed=rmIds.size;vault.flows=vault.flows.filter(f=>!rmIds.has(f.id));
+  flows.forEach(f=>vault.flows.push({id:uid(),date:f.date,type:f.type,amount:f.amount,category:f.category,label:"",recurrence:null,src:f.agg?"import-agg":"import"}));
+  Object.keys(imp.rem).filter(k=>imp.rem[k]&&imp.map[k]&&imp.map[k].startsWith("c:")).forEach(k=>{const nm=imp.keys[k]&&nz(imp.keys[k].disp);if(nm&&nm.length<=40&&!vault.rules.some(r=>r.k===nm))vault.rules.push({k:nm,c:imp.map[k].slice(2)})});
+  const cur=monthNow(),ms=[...new Set(flows.map(f=>f.date.slice(0,7)))].sort(),last=[...ms].reverse().find(m=>m<=cur)||ms[ms.length-1];
+  selectedMonth=last;$("monthPick").value=last;touch();imp=null;resetImportUI();tab("overview");renderAll();
+  toast(flows.length+" mouvement(s) importé(s)"+(removed?" ("+removed+" remplacé(s))":"")+". Exporte le coffre pour les enregistrer. Astuce : onglet Récurrences → Détecter.")}
+
+/* ======================== Évènements ======================== */
+document.querySelectorAll(".nav button").forEach(b=>b.addEventListener("click",()=>tab(b.dataset.tab)));document.querySelectorAll("[data-goto]").forEach(b=>b.addEventListener("click",()=>tab(b.dataset.goto)));
+$("newVault").onclick=createVault;$("openVault").onclick=()=>{if($("pass").value.length<16){$("unlockMsg").textContent="Saisis d'abord la phrase secrète (16 caractères minimum).";$("pass").focus();return}$("fileIn").click()};
+$("importBtn").onclick=async()=>{const r=await modal({title:"Ouvrir un autre coffre",text:dirty?"Attention : des modifications non exportées seront perdues.":"Saisis la phrase secrète du coffre à ouvrir.",fields:[{name:"p",label:"Phrase secrète",type:"password"}],ok:"Choisir le fichier"});if(!r)return;$("pass").value=r.p;$("fileIn").click()};
+$("fileIn").onchange=e=>importFile(e.target.files[0]);
+$("exportBtn").onclick=async()=>{try{download(await encryptVault());dirty=false;updDirty();toast("Coffre chiffré téléchargé. Remplace ta sauvegarde précédente.")}catch(e){toast("Export impossible : "+e.message)}};
+$("passBtn").onclick=async()=>{const r=await modal({title:"Changer la phrase secrète",text:"Le coffre sera rechiffré avec la nouvelle phrase au prochain export.",fields:[{name:"a",label:"Nouvelle phrase (16 caractères minimum)",type:"password"},{name:"b",label:"Confirmation",type:"password"}],ok:"Changer"});if(!r)return;if(r.a.length<16){toast("16 caractères minimum.");return}if(r.a!==r.b){toast("Les deux saisies ne correspondent pas.");return}session=await newSession(r.a);touch();toast("Nouvelle phrase prise en compte : exporte le coffre pour l'appliquer.")};
+$("privBtn").onclick=()=>{const on=document.body.classList.toggle("priv");$("privBtn").setAttribute("aria-pressed",on);$("privBtn").textContent=on?"Afficher les montants":"Masquer les montants";renderChart()};
+$("closeBtn").onclick=()=>{if(dirty&&!confirm("Des modifications n'ont pas été exportées. Fermer quand même ?"))return;vault=null;session=null;dirty=false;imp=null;document.body.classList.remove("priv");showUnlock("Coffre fermé. Les données en mémoire ont été abandonnées.")};
+$("monthPick").onchange=e=>{if(e.target.value){selectedMonth=e.target.value;renderAll()}};$("prevMonth").onclick=()=>{selectedMonth=monthAdd(selectedMonth,-1);$("monthPick").value=selectedMonth;renderAll()};$("nextMonth").onclick=()=>{selectedMonth=monthAdd(selectedMonth,1);$("monthPick").value=selectedMonth;renderAll()};
+$("trend").onclick=e=>{const g=e.target.closest("[data-m]");if(g){selectedMonth=g.dataset.m;$("monthPick").value=selectedMonth;renderAll()}};
+$("fDate").value=todayStr();$("rStart").value=monthNow();
+$("fType").onchange=()=>fillCats("fCategory",$("fType").value);$("rType").onchange=()=>fillCats("rCategory",$("rType").value);
+$("addFlow").onclick=()=>{$("fDate").value=todayStr();$("flowForm").classList.remove("hidden")};$("cancelFlow").onclick=()=>$("flowForm").classList.add("hidden");
+$("saveFlow").onclick=()=>{const date=$("fDate").value,amount=Number($("fAmount").value);if(!date||!Number.isFinite(amount)||amount<=0){toast("Date et montant positif requis.");return}
+  const type=$("fType").value,cat=$("fCategory").value,freq=$("fRecurring").value||null,label=$("fLabel").value.trim();
+  vault.flows.push({id:uid(),date,type,amount:round2(amount),category:cat,label,recurrence:freq});
+  if(freq)vault.recurrences.push({id:uid(),type,amount:round2(amount),category:cat,label,freq,day:Math.min(28,+date.slice(8,10)),start:date.slice(0,7),end:null,active:true});
+  $("fAmount").value="";$("fLabel").value="";$("fRecurring").value="";$("flowForm").classList.add("hidden");touch();renderAll()};
+$("flowTable").onclick=e=>{const b=e.target.closest("[data-del-flow]");if(b&&confirm("Supprimer ce mouvement de la mémoire de travail ?")){vault.flows=vault.flows.filter(f=>f.id!==b.dataset.delFlow);touch();renderAll()}};
+$("flowTable").onchange=e=>{const s=e.target.closest("[data-flow-cat]");if(s){const f=vault.flows.find(x=>x.id===s.dataset.flowCat);if(f){f.category=s.value;touch();renderAll(true)}}};
+$("flFilterMonth").onchange=renderFlowTable;$("flFilterCat").onchange=renderFlowTable;
+$("addRule").onclick=()=>$("ruleForm").classList.remove("hidden");$("cancelRule").onclick=()=>$("ruleForm").classList.add("hidden");$("detectRules").onclick=showDetect;
+$("saveRule").onclick=()=>{const amount=Number($("rAmount").value),start=$("rStart").value,day=Number($("rDay").value),end=$("rEnd").value;if(!start||!(amount>0)||!(day>=1&&day<=28)||(end&&end<start)){toast("Vérifie le montant, les dates et le jour (1 à 28).");return}
+  vault.recurrences.push({id:uid(),type:$("rType").value,amount:round2(amount),category:$("rCategory").value,label:$("rLabel").value.trim(),freq:$("rFreq").value,day:Math.round(day),start,end:end||null,active:true});$("rAmount").value="";$("rLabel").value="";$("ruleForm").classList.add("hidden");touch();renderAll()};
+$("ruleList").onclick=e=>{const b=e.target.closest("[data-del-rule]");if(b&&confirm("Supprimer cette récurrence ?")){vault.recurrences=vault.recurrences.filter(r=>r.id!==b.dataset.delRule);touch();renderAll()}};
+$("horizon").onchange=renderForecast;
+$("addCat").onclick=addCategory;$("cName").addEventListener("keydown",e=>{if(e.key==="Enter")addCategory()});
+$("catTable").onclick=e=>{const r=e.target.closest("[data-ren]");if(r)return renameCat(r.dataset.ren);const d=e.target.closest("[data-delcat]");if(d)deleteCat(d.dataset.delcat)};
+$("catTable").onchange=e=>{const s=e.target.closest("[data-kind]");if(s){const c=vault.categories.find(x=>x.name===s.dataset.kind);if(c){c.kind=s.value;touch();renderAll()}}};
+$("ruleMem").onclick=e=>{const b=e.target.closest("[data-delrule]");if(b){vault.rules.splice(+b.dataset.delrule,1);touch();renderCats()}};
+$("impFile").onchange=e=>loadImport(e.target.files[0]);
+$("impSheets").onchange=e=>{const t=e.target,i=t.dataset.use??t.dataset.yr??t.dataset.mo;if(i===undefined||!imp)return;const s=imp.sheets[+i];
+  if("use"in t.dataset)s.use=t.checked;else if("yr"in t.dataset){const y=parseInt(t.value);if(y>=2000&&y<=2100){s.year=y;s.note=""}}else if("mo"in t.dataset){s.month=t.value===""?null:+t.value;s.use=s.month!==null;s.note=s.month===null?"Choisis le mois.":"";const cb=document.querySelector(`[data-use="${i}"]`);if(cb)cb.checked=s.use}
+  impRecompute()};
+$("impMap").onchange=e=>{const t=e.target;if(t.dataset.map!==undefined){imp.map[t.dataset.map]=t.value;renderImpPreview()}else if(t.dataset.rem!==undefined)imp.rem[t.dataset.rem]=t.checked};
+$("impOnlyCheck").onchange=()=>imp&&renderImpMap();
+$("impOpts").onchange=e=>{if(e.target.id==="optFuture")imp.opts.future=e.target.checked;if(e.target.id==="optReplace")imp.opts.replace=e.target.checked;renderImpPreview()};
+$("impCancel").onclick=()=>{imp=null;resetImportUI()};$("impCommit").onclick=commitImport;
+showUnlock();
+</script>
 </body>
 </html>

@@ -1,0 +1,22 @@
+# PILOT v2
+
+## Lancer
+1. Décompresser l'archive. 2. Dans ce dossier : `python serveur_local.py` (ou `python -m http.server 8000 --bind 127.0.0.1`).
+3. Ouvrir http://localhost:8000
+IMPORTANT : sans `--bind 127.0.0.1`, http.server est visible de tout le réseau local.
+
+## Nouveautés v2
+- Catégories : ajouter, renommer (propagé à tous les mouvements, récurrences et règles), fusionner (renommer vers un nom existant), supprimer avec reclassement, choisir dépenses/recettes/les deux. Catégorie modifiable directement dans la liste des flux.
+- Import .ods / .xlsx / .csv, analyse locale : tableau annuel (catégories × mois), journal mensuel jour par jour, liste de mouvements. Correspondance des catégories à valider, aperçu par mois, doublons exacts ignorés, mois déjà détaillés prioritaires sur les totaux annuels, mois futurs exclus par défaut.
+- Les libellés du fichier (commerçants, noms) ne sont jamais enregistrés. Pas d'IA externe : cela enverrait vos données à un tiers.
+- Graphique 12 mois, filtres des flux, détection de récurrences depuis l'historique, masquage des montants, indicateur « modifications non exportées ».
+
+## Sécurité
+- AES-256-GCM, PBKDF2-SHA-256 600 000 itérations, sel et IV aléatoires, en-tête authentifié. Les coffres v1 s'ouvrent et sont migrés.
+- Politique CSP : aucune requête réseau possible depuis la page. Aucun stockage navigateur.
+- La clé dérivée (non extractible) reste en mémoire pendant la session pour exporter sans ressaisie ; « Fermer » l'abandonne.
+- Les « règles mémorisées » sont chiffrées mais ne doivent contenir que des mots génériques.
+- Limites : poste compromis, extensions, captures d'écran ; le fichier tableur source n'est pas protégé par PILOT (à supprimer après import).
+
+## Structure du coffre (déchiffré)
+{"version":2,"categories":[{"name":"Logement","kind":"out|in|both"}],"flows":[{id,date,type,amount,category,label,recurrence,src?}],"recurrences":[...],"rules":[{"k":"mot","c":"Catégorie"}]}
