@@ -402,3 +402,8 @@ tr:last-child td {
     flex: 1;
   }
 }
+/* Sélection et suppression groupée des mouvements */
+input[type="checkbox"] { width: auto; min-width: 16px; height: 16px; vertical-align: middle; accent-color: var(--blue); }
+.flow-actions { justify-content: flex-end; }
+.flow-actions button { white-space: nowrap; }
+@media (max-width: 650px) { .flow-actions { width: 100%; } .flow-actions button { flex: 1; font-size: 12px; padding: 9px 8px; } }

@@ -16,6 +16,10 @@ const enc = new TextEncoder();
 const dec = new TextDecoder();
 const money = (n) => new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" }).format(Number(n) || 0);
 const monthNow = () => new Date().toISOString().slice(0, 7);
+const latestFlowMonth = (data) => {
+  const dates = (data?.flows || []).map(f => String(f.date || "").slice(0, 7)).filter(m => /^\d{4}-\d{2}$/.test(m));
+  return dates.sort().at(-1) || null;
+};
 
 function uid() {
   return crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random().toString(16).slice(2);
@@ -101,6 +105,18 @@ async function decryptVault(obj, password) {
   if (!Array.isArray(v.flows) || !Array.isArray(v.recurrences)) {
     throw new Error("Structure de données invalide.");
   }
+  v.recurrences = Array.isArray(v.recurrences) ? v.recurrences : [];
+  v.flows = Array.isArray(v.flows) ? v.flows : [];
+  // Compatibilité : les anciennes versions stockaient la fréquence sur le flux sans créer de règle.
+  v.flows.forEach(flow => {
+    if (!flow.recurrence || !flow.date || v.recurrences.some(r => r.sourceFlowId === flow.id)) return;
+    v.recurrences.push({
+      id: uid(), sourceFlowId: flow.id, type: flow.type, amount: Number(flow.amount) || 0,
+      category: flow.category || "Autre", label: flow.label || "", freq: flow.recurrence,
+      day: Math.min(28, Math.max(1, Number(flow.date.slice(8, 10)) || 1)),
+      start: flow.date.slice(0, 7), end: null, active: true
+    });
+  });
   if (obj.categories && Array.isArray(obj.categories)) {
     categories = [...new Set([...categories, ...obj.categories])];
   } else if (v.categories) {
@@ -144,11 +160,17 @@ function sum(arr, type) {
 
 function renderFlows() {
   $("flowCount").textContent = vault.flows.length + " mouvement(s)";
-  $("flowTable").innerHTML = flowRows(vault.flows);
-  $("recent").innerHTML = flowRows(flowsFor(selectedMonth), 6);
+  $("flowTable").innerHTML = flowRows(vault.flows, undefined, true);
+  $("recent").innerHTML = flowRows(flowsFor(selectedMonth), 6, false);
+  const bulkButton = $("deleteSelectedFlows");
+  if (bulkButton) bulkButton.disabled = true;
+  const selectAllButton = $("selectAllFlows");
+  if (selectAllButton) selectAllButton.textContent = "Tout sélectionner";
+  const deleteAllButton = $("deleteAllFlows");
+  if (deleteAllButton) deleteAllButton.disabled = vault.flows.length === 0;
 }
 
-function flowRows(arr, limit) {
+function flowRows(arr, limit, selectable = false) {
   const sorted = [...arr].sort((a, b) => b.date.localeCompare(a.date));
   if (!sorted.length) return '<div class="empty">Aucun mouvement à afficher.</div>';
   return `
@@ -156,6 +178,7 @@ function flowRows(arr, limit) {
       <table>
         <thead>
           <tr>
+            ${selectable ? '<th><input type="checkbox" id="toggleVisibleFlows" aria-label="Sélectionner les mouvements affichés"></th>' : ''}
             <th>Date</th>
             <th>Nature</th>
             <th>Catégorie</th>
@@ -167,6 +190,7 @@ function flowRows(arr, limit) {
         <tbody>
           ${sorted.slice(0, limit || sorted.length).map((f) => `
             <tr>
+              ${selectable ? `<td><input type="checkbox" class="flow-select" data-flow-id="${safe(f.id)}" aria-label="Sélectionner ce mouvement"></td>` : ''}
               <td>${safe(f.date)}</td>
               <td><span class="pill ${f.type}">${f.type === "in" ? "Recette" : "Dépense"}</span></td>
               <td>${safe(f.category)}</td>
@@ -231,46 +255,41 @@ function renderRules() {
 function renderForecast() {
   const n = Number($("horizon").value);
   const months = Array.from({ length: n }, (_, i) => monthAdd(selectedMonth, i));
-  let totals = { in: 0, out: 0 };
+  let totals = { actualIn: 0, actualOut: 0, plannedIn: 0, plannedOut: 0 };
   const rows = months.map((m) => {
-    const r = recurringFor(m);
-    totals.in += r.in;
-    totals.out += r.out;
-    return { m, ...r };
+    const planned = recurringFor(m);
+    const actual = flowsFor(m);
+    const actualIn = sum(actual, "in");
+    const actualOut = sum(actual, "out");
+    totals.actualIn += actualIn; totals.actualOut += actualOut;
+    totals.plannedIn += planned.in; totals.plannedOut += planned.out;
+    return { m, actualIn, actualOut, plannedIn: planned.in, plannedOut: planned.out };
   });
   $("forecastMetrics").innerHTML = [
-    ["Recettes prévues", money(totals.in), "green"],
-    ["Dépenses prévues", money(totals.out), "red"],
-    ["Solde prévisionnel", money(totals.in - totals.out), totals.in >= totals.out ? "green" : "red"],
-    ["Moyenne mensuelle", money((totals.out - totals.in) / n), "amber"]
+    ["Recettes enregistrées", money(totals.actualIn), "green"],
+    ["Dépenses enregistrées", money(totals.actualOut), "red"],
+    ["Recettes récurrentes prévues", money(totals.plannedIn), "green"],
+    ["Dépenses récurrentes prévues", money(totals.plannedOut), "amber"]
   ].map((x) => `
-    <div class="card metric">
-      <small>${x[0]}</small>
-      <strong class="${x[2]}">${x[1]}</strong>
-      <em>${x[0] === "Moyenne mensuelle" ? "Sorties nettes moyennes" : n + " mois cumulés"}</em>
-    </div>
+    <div class="card metric"><small>${x[0]}</small><strong class="${x[2]}">${x[1]}</strong><em>${n} mois affichés</em></div>
   `).join("");
   $("forecastTable").innerHTML = `
-    <table>
-      <thead>
-        <tr>
-          <th>Mois</th>
-          <th style="text-align:right">Recettes prévues</th>
-          <th style="text-align:right">Dépenses prévues</th>
-          <th style="text-align:right">Solde prévu</th>
-        </tr>
-      </thead>
-      <tbody>
+    <div style="overflow-x:auto"><table>
+      <thead><tr>
+        <th>Mois</th><th style="text-align:right">Recettes enregistrées</th>
+        <th style="text-align:right">Dépenses enregistrées</th>
+        <th style="text-align:right">Recettes prévues</th>
+        <th style="text-align:right">Dépenses prévues</th>
+        <th style="text-align:right">Solde prévisionnel</th>
+      </tr></thead><tbody>
         ${rows.map((r) => `
-          <tr>
-            <td style="text-transform:capitalize">${monthLabel(r.m)}</td>
-            <td class="num green">${money(r.in)}</td>
-            <td class="num red">${money(r.out)}</td>
-            <td class="num ${(r.in - r.out) >= 0 ? "green" : "red"}">${money(r.in - r.out)}</td>
-          </tr>
+          <tr><td style="text-transform:capitalize">${monthLabel(r.m)}</td>
+          <td class="num green">${money(r.actualIn)}</td><td class="num red">${money(r.actualOut)}</td>
+          <td class="num green">${money(r.plannedIn)}</td><td class="num red">${money(r.plannedOut)}</td>
+          <td class="num ${(r.actualIn + r.plannedIn - r.actualOut - r.plannedOut) >= 0 ? "green" : "red"}">${money(r.actualIn + r.plannedIn - r.actualOut - r.plannedOut)}</td></tr>
         `).join("")}
-      </tbody>
-    </table>
+      </tbody></table></div>
+    <p class="small muted">Les mouvements enregistrés sont affichés séparément des récurrences prévues. Le solde prévisionnel additionne les deux sans modifier l'historique.</p>
   `;
 }
 
@@ -568,7 +587,7 @@ document.addEventListener("DOMContentLoaded", () => {
       try {
         const obj = JSON.parse(reader.result);
         vault = await decryptVault(obj, p);
-        selectedMonth = monthNow();
+        selectedMonth = latestFlowMonth(vault) || monthNow();
         $("pass").value = "";
         showApp();
       } catch (e) {
@@ -639,25 +658,70 @@ document.addEventListener("DOMContentLoaded", () => {
       alert("Date et montant positif requis.");
       return;
     }
-    vault.flows.push({
-      id: uid(),
-      date,
-      type: $("fType").value,
+    const flow = {
+      id: uid(), date, type: $("fType").value,
       amount: Math.round(amount * 100) / 100,
-      category: $("fCategory").value,
-      label: $("fLabel").value.trim(),
+      category: $("fCategory").value, label: $("fLabel").value.trim(),
       recurrence: $("fRecurring").value || null
-    });
+    };
+    vault.flows.push(flow);
+    selectedMonth = date.slice(0, 7);
+    $("monthPick").value = selectedMonth;
+    if (flow.recurrence) {
+      vault.recurrences.push({
+        id: uid(), sourceFlowId: flow.id, type: flow.type, amount: flow.amount,
+        category: flow.category, label: flow.label, freq: flow.recurrence,
+        day: Math.min(28, Math.max(1, Number(date.slice(8, 10)) || 1)),
+        start: date.slice(0, 7), end: null, active: true
+      });
+    }
     $("fAmount").value = "";
     $("fLabel").value = "";
     $("flowForm").classList.add("hidden");
     renderAll();
   };
 
+  function updateFlowSelectionUI() {
+    const selected = document.querySelectorAll("#flowTable .flow-select:checked").length;
+    const total = document.querySelectorAll("#flowTable .flow-select").length;
+    $("deleteSelectedFlows").disabled = selected === 0;
+    $("deleteSelectedFlows").textContent = selected ? `Supprimer la sélection (${selected})` : "Supprimer la sélection";
+    const master = $("flowTable").querySelector("#toggleVisibleFlows");
+    if (master) { master.checked = total > 0 && selected === total; master.indeterminate = selected > 0 && selected < total; }
+    $("selectAllFlows").textContent = total > 0 && selected === total ? "Tout désélectionner" : "Tout sélectionner";
+  }
+
+  $("flowTable").addEventListener("change", (e) => {
+    if (e.target.id === "toggleVisibleFlows") {
+      $("flowTable").querySelectorAll(".flow-select").forEach(cb => cb.checked = e.target.checked);
+    }
+    updateFlowSelectionUI();
+  });
   $("flowTable").onclick = (e) => {
     const b = e.target.closest("[data-del-flow]");
     if (b && confirm("Supprimer ce mouvement de la mémoire de travail ?")) {
       vault.flows = vault.flows.filter((f) => f.id !== b.dataset.delFlow);
+      renderAll();
+    }
+  };
+  $("selectAllFlows").onclick = () => {
+    const boxes = [...document.querySelectorAll("#flowTable .flow-select")];
+    const allChecked = boxes.length > 0 && boxes.every(cb => cb.checked);
+    boxes.forEach(cb => cb.checked = !allChecked);
+    updateFlowSelectionUI();
+  };
+  $("deleteSelectedFlows").onclick = () => {
+    const ids = new Set([...document.querySelectorAll("#flowTable .flow-select:checked")].map(cb => cb.dataset.flowId));
+    if (!ids.size) return;
+    if (confirm(`Supprimer définitivement ${ids.size} mouvement(s) de la mémoire de travail ?`)) {
+      vault.flows = vault.flows.filter(f => !ids.has(f.id));
+      renderAll();
+    }
+  };
+  $("deleteAllFlows").onclick = () => {
+    if (!vault.flows.length) return;
+    if (confirm(`Supprimer les ${vault.flows.length} mouvements du coffre ? Cette action ne peut pas être annulée.`)) {
+      vault.flows = [];
       renderAll();
     }
   };
@@ -802,6 +866,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (confirm(`Importer ${excelDataPreview.length} mouvements ?`)) {
       vault.flows.push(...excelDataPreview);
+      selectedMonth = latestFlowMonth(vault) || selectedMonth;
+      $("monthPick").value = selectedMonth;
       renderAll();
       $("importExcelModal").classList.add("hidden");
       alert(`Succès : ${excelDataPreview.length} mouvements importés.`);

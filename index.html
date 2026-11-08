@@ -155,8 +155,15 @@
           </div>
           <div class="card section">
             <div class="sectionhead">
-              <h2>Historique</h2>
-              <span class="muted small" id="flowCount"></span>
+              <div>
+                <h2>Historique</h2>
+                <span class="muted small" id="flowCount"></span>
+              </div>
+              <div class="actions flow-actions">
+                <button class="secondary" id="selectAllFlows">Tout sélectionner</button>
+                <button class="danger" id="deleteSelectedFlows" disabled>Supprimer la sélection</button>
+                <button class="danger" id="deleteAllFlows">Tout supprimer</button>
+              </div>
             </div>
             <div id="flowTable"></div>
           </div>
