@@ -40,6 +40,9 @@ dialog{border:0;border-radius:15px;padding:22px;max-width:440px;width:92vw;box-s
 .donutwrap{position:relative;width:190px;height:190px;margin:4px auto 10px}.donutwrap svg{width:100%;height:100%;transform:rotate(-90deg)}.donutc{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;pointer-events:none}.donutc strong{font-size:19px}.donutc small{color:var(--muted)}
 .leg{display:grid;gap:7px;font-size:13px}.leg div{display:grid;grid-template-columns:14px 1fr auto auto;gap:8px;align-items:center}.leg i{width:11px;height:11px;border-radius:3px;display:inline-block}.leg .pc{color:var(--muted);min-width:42px;text-align:right}
 .pbar{position:relative;height:10px;background:#edf0f4;border-radius:20px}.pbar b{display:block;height:100%;border-radius:20px}.pbar u{position:absolute;top:-3px;bottom:-3px;width:2px;background:#17212f;text-decoration:none}
+.slidehead{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.slidehead h2{margin:0}.slidenav{display:inline-flex;align-items:center;gap:6px}.slidenav button{padding:2px 11px;font-size:17px;line-height:1.3;border-radius:8px}.dots{display:inline-flex;gap:5px;align-items:center}.dots i{width:7px;height:7px;border-radius:50%;background:#cfd6df;display:inline-block}.dots i.on{background:var(--blue)}.slideright{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.slideright select{width:auto;max-width:220px;padding:6px 10px}
+.linkbtn{background:none;border:0;padding:0;color:var(--blue);font-weight:650;text-align:left;border-radius:4px}.linkbtn:hover{text-decoration:underline}
+.legend span{display:inline-flex;align-items:center}
 </style>
 </head>
 <body>
@@ -56,7 +59,7 @@ dialog{border:0;border-radius:15px;padding:22px;max-width:440px;width:92vw;box-s
     <section id="tab-overview">
       <div class="sectionhead"><div><h2>Vue mensuelle</h2><div class="muted small">Lecture synthétique des entrées et sorties</div></div><div class="monthbar"><button class="secondary" id="prevMonth" aria-label="Mois précédent">‹</button><input type="month" id="monthPick"><button class="secondary" id="nextMonth" aria-label="Mois suivant">›</button></div></div>
       <div class="grid" id="metrics"></div>
-      <div class="card section"><div class="sectionhead"><h2>12 derniers mois</h2><span class="muted small">Cliquer sur un mois pour le sélectionner</span></div><div id="trend"></div><div class="legend"><span><i style="background:var(--green)"></i>Recettes</span><span><i style="background:var(--red)"></i>Dépenses</span></div></div>
+      <div class="card section"><div class="sectionhead"><div class="slidehead"><h2 id="trendTitle">12 derniers mois</h2><div class="slidenav"><button class="secondary" id="trendPrev" aria-label="Graphique précédent">‹</button><span class="dots" id="trendDots"></span><button class="secondary" id="trendNext" aria-label="Graphique suivant">›</button></div></div><div class="slideright"><select id="trendCatSel" class="hidden" aria-label="Catégorie affichée"></select><span class="muted small" id="trendHint">Cliquer sur un mois pour le sélectionner</span></div></div><div id="trend"></div><div class="legend" id="trendLegend"><span><i style="background:var(--green)"></i>Recettes</span><span><i style="background:var(--red)"></i>Dépenses</span></div><div id="trendCats" class="hidden"></div><div class="legend hidden" id="trendCatLegend"></div></div>
       <div class="two section">
         <div class="card"><div class="sectionhead"><h2>Répartition des dépenses</h2><span class="muted small">Mois sélectionné</span></div><div id="categoryBars" class="barlist"></div></div>
         <div class="card"><div class="sectionhead"><h2>Lecture du mois</h2></div><div id="monthInsight"></div></div>
@@ -70,7 +73,7 @@ dialog{border:0;border-radius:15px;padding:22px;max-width:440px;width:92vw;box-s
         <div class="formgrid">
           <div class="field"><label for="fDate">Date</label><input type="date" id="fDate"></div>
           <div class="field"><label for="fType">Nature</label><select id="fType"><option value="out">Dépense</option><option value="in">Recette</option></select></div>
-          <div class="field"><label for="fAmount">Montant (€)</label><input type="number" id="fAmount" min="0.01" step="0.01" placeholder="0,00"></div>
+          <div class="field"><label for="fAmount">Montant (€)</label><input type="text" inputmode="decimal" id="fAmount" autocomplete="off" placeholder="0,00"></div>
           <div class="field"><label for="fCategory">Catégorie</label><select id="fCategory"></select></div>
           <div class="field"><label for="fLabel">Libellé neutre (facultatif)</label><input id="fLabel" maxlength="32" placeholder="Ex. abonnement A"></div>
           <div class="field"><label for="fRecurring">Créer aussi une récurrence</label><select id="fRecurring"><option value="">Non</option><option value="monthly">Mensuelle</option><option value="quarterly">Trimestrielle</option><option value="yearly">Annuelle</option></select></div>
@@ -128,6 +131,7 @@ dialog{border:0;border-radius:15px;padding:22px;max-width:440px;width:92vw;box-s
     <section id="tab-import" class="hidden">
       <div class="sectionhead"><div><h2>Importer un tableur</h2><div class="muted small">Formats : .ods, .xlsx, .csv — analyse 100 % locale, aucun envoi réseau</div></div></div>
       <div class="notice">L'analyse détecte automatiquement la mise en page (tableau annuel catégories × mois, journal mensuel jour par jour, liste de mouvements). <strong>Les libellés (commerçants, noms, commentaires) ne sont jamais conservés</strong> : seuls date, nature, montant et catégorie entrent dans le coffre. Une analyse par IA externe obligerait à envoyer le contenu du fichier à un tiers, ce qui contredit l'exigence « rien d'interceptable » : la reconnaissance se fait donc localement, avec un dictionnaire que tu peux corriger et enrichir.</div>
+      <div class="card section"><div class="sectionhead"><h2>Télécharger les données (Excel)</h2><button class="secondary" id="xlsxBtn">Télécharger en .xlsx</button></div><p class="small muted" style="margin:0">Génère un classeur avec les feuilles Mouvements, Synthèse mensuelle, Dépenses par catégorie, Récurrences et Budget, pour retraiter les données en local. Le fichier n'est <strong>pas chiffré</strong> : range-le comme ton coffre et supprime-le après usage.</p></div>
       <div class="card section"><label for="impFile">Fichier à analyser</label><input type="file" id="impFile" accept=".ods,.xlsx,.csv,.tsv,.txt"><p class="small muted" style="margin-bottom:0">Le fichier est lu en mémoire puis abandonné. Les feuilles non reconnues (noms de personnes, soldes…) ne sont pas lues.</p></div>
       <div id="impBody" class="hidden">
         <div class="card section"><div class="sectionhead"><h2>1 · Feuilles détectées</h2></div><div id="impSheets"></div></div>
@@ -222,6 +226,62 @@ async function decryptVault(obj,pw){
   let plain;try{plain=await crypto.subtle.decrypt(params,key,un64(obj.data))}catch{throw Error("phrase secrète incorrecte ou fichier altéré.")}
   return {vault:normalizeVault(JSON.parse(dec.decode(plain))),legacy:obj.format===1||iter<ITER,key,salt:un64(obj.salt),iter};
 }
+/* ======================== Export Excel (.xlsx) : généré localement, sans bibliothèque ======================== */
+const CRC_T=(()=>{const t=new Uint32Array(256);for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0}return t})();
+function crc32(u){let c=0xFFFFFFFF;for(let i=0;i<u.length;i++)c=CRC_T[(c^u[i])&255]^(c>>>8);return(c^0xFFFFFFFF)>>>0}
+function zipStore(files){
+  const u16=n=>[n&255,(n>>8)&255],u32=n=>[n&255,(n>>>8)&255,(n>>>16)&255,(n>>>24)&255],parts=[],cd=[];let off=0;
+  files.forEach(([name,text])=>{const nb=enc.encode(name),data=enc.encode(text),crc=crc32(data);
+    const lh=Uint8Array.from([0x50,0x4b,3,4,...u16(20),...u16(0x0800),...u16(0),...u16(0),...u16(0x21),...u32(crc),...u32(data.length),...u32(data.length),...u16(nb.length),...u16(0)]);
+    cd.push(Uint8Array.from([0x50,0x4b,1,2,...u16(20),...u16(20),...u16(0x0800),...u16(0),...u16(0),...u16(0x21),...u32(crc),...u32(data.length),...u32(data.length),...u16(nb.length),...u16(0),...u16(0),...u16(0),...u16(0),...u32(0),...u32(off)]),nb);
+    parts.push(lh,nb,data);off+=lh.length+nb.length+data.length});
+  const cdSize=cd.reduce((s,x)=>s+x.length,0),n=files.length;
+  parts.push(...cd,Uint8Array.from([0x50,0x4b,5,6,...u16(0),...u16(0),...u16(n),...u16(n),...u32(cdSize),...u32(off),...u16(0)]));
+  return new Blob(parts,{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"})}
+const xe=s=>String(s??"").replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g,"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const colL=i=>{let s="";i++;while(i>0){const r=(i-1)%26;s=String.fromCharCode(65+r)+s;i=Math.floor((i-1)/26)}return s};
+/* cellule : texte, nombre, ou {v,s} ; styles : 1 en-tête, 2 date, 3 montant, 4 gras, 5 montant gras */
+function sheetXml(rows,widths,o={}){
+  const sd=rows.map((r,ri)=>`<row r="${ri+1}">`+r.map((c,ci)=>{if(c===null||c===undefined||c==="")return"";const k=typeof c==="object"?c:{v:c},ref=colL(ci)+(ri+1),st=k.s?` s="${k.s}"`:"";
+    return typeof k.v==="number"&&Number.isFinite(k.v)?`<c r="${ref}"${st}><v>${k.v}</v></c>`:`<c r="${ref}"${st} t="inlineStr"><is><t xml:space="preserve">${xe(k.v)}</t></is></c>`}).join("")+"</row>").join("");
+  const last=colL(Math.max(1,...rows.map(r=>r.length))-1)+rows.length;
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><dimension ref="A1:${last}"/><sheetViews><sheetView workbookViewId="0">${o.freeze?'<pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/>':""}</sheetView></sheetViews><sheetFormatPr defaultRowHeight="15"/><cols>${widths.map((w,i)=>`<col min="${i+1}" max="${i+1}" width="${w}" customWidth="1"/>`).join("")}</cols><sheetData>${sd}</sheetData>${o.filter&&rows.length>1?`<autoFilter ref="A1:${last}"/>`:""}</worksheet>`}
+function buildXlsx(){
+  const fl=[...vault.flows].sort((a,b)=>a.date.localeCompare(b.date)||String(a.id).localeCompare(String(b.id)));
+  const serial=d=>Date.UTC(+d.slice(0,4),+d.slice(5,7)-1,+d.slice(8,10))/864e5+25569;
+  const H=a=>a.map(v=>({v,s:1})),SRC={import:"Import (détail)","import-agg":"Import (total mensuel)"};
+  const sh=[];
+  sh.push(["Mouvements",sheetXml([H(["Date","Mois","Nature","Catégorie","Libellé","Montant (€)","Montant signé (€)","Origine","Récurrence"])].concat(fl.map(f=>[{v:serial(f.date),s:2},f.date.slice(0,7),f.type==="in"?"Recette":"Dépense",f.category,f.label||"",{v:f.amount,s:3},{v:f.type==="in"?f.amount:-f.amount,s:3},SRC[f.src]||"Saisie manuelle",f.recurrence?(FREQ[f.recurrence]||""):""])),[12,10,10,22,24,14,16,22,14],{freeze:1,filter:1})]);
+  const ms=[...new Set(fl.map(f=>f.date.slice(0,7)))].sort(),by={};
+  fl.forEach(f=>{const m=by[f.date.slice(0,7)]||(by[f.date.slice(0,7)]={i:0,o:0,n:0});m[f.type==="in"?"i":"o"]+=f.amount;m.n++});
+  const sum1=[H(["Mois","Recettes (€)","Dépenses (€)","Solde (€)","Mouvements"])].concat(ms.map(m=>[m,{v:round2(by[m].i),s:3},{v:round2(by[m].o),s:3},{v:round2(by[m].i-by[m].o),s:3},by[m].n]));
+  if(ms.length){const T=ms.reduce((a,m)=>({i:a.i+by[m].i,o:a.o+by[m].o,n:a.n+by[m].n}),{i:0,o:0,n:0});sum1.push([{v:"Total",s:4},{v:round2(T.i),s:5},{v:round2(T.o),s:5},{v:round2(T.i-T.o),s:5},{v:T.n,s:4}])}
+  sh.push(["Synthèse mensuelle",sheetXml(sum1,[12,16,16,16,12],{freeze:1})]);
+  let allM=[];if(ms.length){for(let m=ms[0];m<=ms[ms.length-1]&&allM.length<600;m=monthAdd(m,1))allM.push(m)}
+  const cell={};fl.forEach(f=>{if(f.type!=="out")return;const k=f.category+"\u0001"+f.date.slice(0,7);cell[k]=(cell[k]||0)+f.amount});
+  const ct={};fl.forEach(f=>{if(f.type==="out")ct[f.category]=(ct[f.category]||0)+f.amount});
+  const cats=Object.keys(ct).sort((a,b)=>ct[b]-ct[a]),piv=[H(["Catégorie",...allM,"Total"])];
+  cats.forEach(c=>piv.push([c,...allM.map(m=>cell[c+"\u0001"+m]?{v:round2(cell[c+"\u0001"+m]),s:3}:null),{v:round2(ct[c]),s:5}]));
+  if(cats.length)piv.push([{v:"Total",s:4},...allM.map(m=>({v:round2(cats.reduce((s,c)=>s+(cell[c+"\u0001"+m]||0),0)),s:5})),{v:round2(cats.reduce((s,c)=>s+ct[c],0)),s:5}]);
+  sh.push(["Dépenses par catégorie",sheetXml(piv,[24,...allM.map(()=>11),14],{freeze:1})]);
+  sh.push(["Récurrences",sheetXml([H(["Nature","Catégorie","Libellé","Montant (€)","Fréquence","Jour du mois","Début","Fin","Active"])].concat(vault.recurrences.map(r=>[r.type==="in"?"Recette":"Dépense",r.category,r.label||"",{v:r.amount,s:3},FREQ[r.freq]||r.freq,r.day,r.start,r.end||"",r.active!==false?"Oui":"Non"])),[10,22,24,14,14,12,10,10,8],{freeze:1,filter:1})]);
+  const B=bud(),bl=[H(["Paramètre","Valeur"]),["Revenu mensuel moyen (€, vide = estimé)",B.income===null?"":{v:B.income,s:3}],["Épargne cible par mois (€)",{v:B.saving||0,s:3}],["Seuil de sécurité (€)",{v:B.safety||0,s:3}],["Solde disponible (€)",B.cash===null?"":{v:B.cash,s:3}],["Date du solde",B.cashDate||""],[],H(["Catégorie","Enveloppe variable mensuelle (€)"])];
+  Object.entries(B.envelopes).forEach(([k,v])=>bl.push([k,{v,s:3}]));
+  sh.push(["Budget",sheetXml(bl,[40,32],{})]);
+  const X='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>',R="http://schemas.openxmlformats.org/officeDocument/2006/relationships",M="http://schemas.openxmlformats.org/spreadsheetml/2006/main",CT="application/vnd.openxmlformats-officedocument.spreadsheetml";
+  const styles=`${X}<styleSheet xmlns="${M}"><numFmts count="2"><numFmt numFmtId="164" formatCode="yyyy\\-mm\\-dd"/><numFmt numFmtId="165" formatCode="#,##0.00\\ &quot;€&quot;"/></numFmts><fonts count="2"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font></fonts><fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FFE5E9EF"/><bgColor indexed="64"/></patternFill></fill></fills><borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="6"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1"/><xf numFmtId="164" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/><xf numFmtId="165" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/><xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/><xf numFmtId="165" fontId="1" fillId="0" borderId="0" xfId="0" applyNumberFormat="1" applyFont="1"/></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>`;
+  const files=[["[Content_Types].xml",`${X}<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="${CT}.sheet.main+xml"/>${sh.map((_,i)=>`<Override PartName="/xl/worksheets/sheet${i+1}.xml" ContentType="${CT}.worksheet+xml"/>`).join("")}<Override PartName="/xl/styles.xml" ContentType="${CT}.styles+xml"/></Types>`],
+    ["_rels/.rels",`${X}<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="${R}/officeDocument" Target="xl/workbook.xml"/></Relationships>`],
+    ["xl/workbook.xml",`${X}<workbook xmlns="${M}" xmlns:r="${R}"><sheets>${sh.map(([n],i)=>`<sheet name="${xe(n)}" sheetId="${i+1}" r:id="rId${i+1}"/>`).join("")}</sheets></workbook>`],
+    ["xl/_rels/workbook.xml.rels",`${X}<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${sh.map((_,i)=>`<Relationship Id="rId${i+1}" Type="${R}/worksheet" Target="worksheets/sheet${i+1}.xml"/>`).join("")}<Relationship Id="rId${sh.length+1}" Type="${R}/styles" Target="styles.xml"/></Relationships>`],
+    ["xl/styles.xml",styles],...sh.map(([,x],i)=>[`xl/worksheets/sheet${i+1}.xml`,x])];
+  return zipStore(files)}
+function exportXlsx(){
+  if(!vault||(!vault.flows.length&&!vault.recurrences.length)){toast("Aucune donnée à exporter pour l'instant.");return}
+  if(!confirm("Le fichier Excel contiendra tes montants, dates et catégories en clair (non chiffré). Continuer ?"))return;
+  try{const blob=buildXlsx(),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download="pilot-donnees-"+todayStr()+".xlsx";document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+    toast("Classeur Excel téléchargé : "+vault.flows.length+" mouvement(s), "+vault.recurrences.length+" récurrence(s). Non chiffré : à ranger avec soin.")}
+  catch(err){toast("Export Excel impossible : "+(err&&err.message||err))}}
 function download(obj){const blob=new Blob([JSON.stringify(obj,null,2)],{type:"application/json"});const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download="pilot-coffre-"+todayStr()+".json";document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)}
 
 /* ======================== Démarrage, ouverture, export ======================== */
@@ -280,7 +340,37 @@ function renderMetrics(){const fs=flowsFor(selectedMonth),income=sum(fs,"in"),ou
   const items=[["Recettes",income,"Entrées du mois","green"],["Dépenses",out,"Sorties du mois","red"],["Solde mensuel",balance,"Recettes − dépenses",balance>=0?"green":"red"],["Récurrences",recurringFor(selectedMonth).out,"Dépenses prévues","amber"]];
   $("metrics").innerHTML=items.map(([a,b,c,d])=>`<div class="card metric"><small>${a}</small><strong class="${d}">${mh(b)}</strong><em>${c}</em></div>`).join("")}
 const kfmt=v=>v>=1000?(v/1000).toFixed(v>=10000?0:1).replace(".",",")+" k€":Math.round(v)+" €";
+let trendSlide=0,trendCatSel="";
+function applyTrendSlide(){const s=trendSlide;
+  $("trend").classList.toggle("hidden",s!==0);$("trendLegend").classList.toggle("hidden",s!==0);
+  $("trendCats").classList.toggle("hidden",s!==1);$("trendCatLegend").classList.toggle("hidden",s!==1);$("trendCatSel").classList.toggle("hidden",s!==1);
+  $("trendTitle").textContent=s?"Dépenses par catégorie":"12 derniers mois";
+  $("trendHint").textContent=s?"12 derniers mois · cliquer sur un mois pour le sélectionner":"Cliquer sur un mois pour le sélectionner";
+  $("trendDots").innerHTML=[0,1].map(i=>`<i class="${i===s?"on":""}"></i>`).join("")}
+function renderCatChart(){
+  const months=Array.from({length:12},(_,i)=>monthAdd(selectedMonth,i-11)),box=$("trendCats"),leg=$("trendCatLegend"),sel=$("trendCatSel");
+  const per=months.map(m=>{const o={};flowsFor(m).forEach(f=>{if(f.type==="out")o[f.category]=(o[f.category]||0)+Number(f.amount)});return o});
+  const tot={};per.forEach(o=>Object.entries(o).forEach(([c,v])=>tot[c]=(tot[c]||0)+v));
+  const ranked=Object.keys(tot).sort((a,b)=>tot[b]-tot[a]);
+  sel.innerHTML='<option value="">Toutes les catégories (empilé)</option>'+ranked.map(c=>`<option value="${safe(c)}">${safe(c)}</option>`).join("");
+  if(!ranked.includes(trendCatSel))trendCatSel="";sel.value=trendCatSel;
+  if(!ranked.length){box.innerHTML='<div class="empty">Aucune dépense sur les 12 derniers mois.</div>';leg.innerHTML="";return}
+  let groups;
+  if(trendCatSel)groups=[{name:trendCatSel,color:PAL[0],vals:per.map(o=>o[trendCatSel]||0)}];
+  else{const top=ranked.slice(0,6),rest=ranked.slice(6);
+    groups=top.map((c,i)=>({name:c,color:PAL[i],vals:per.map(o=>o[c]||0)}));
+    if(rest.length)groups.push({name:"Autres ("+rest.length+")",color:"#9aa5b4",vals:per.map(o=>rest.reduce((s,c)=>s+(o[c]||0),0))})}
+  const tots=months.map((_,i)=>groups.reduce((s,g)=>s+g.vals[i],0));
+  const max=Math.max(1,...tots),W=720,H=230,L=52,B=28,T=10,iw=(W-L-6)/12,ph=H-B-T,bw=Math.min(34,iw-10);
+  const fm=new Intl.DateTimeFormat("fr-FR",{month:"short"});let s="";
+  for(let k=0;k<=4;k++){const y=T+ph-ph*k/4;s+=`<line class="gridline" x1="${L}" x2="${W}" y1="${y}" y2="${y}"/><text class="axis" x="${L-6}" y="${y+3}" text-anchor="end">${kfmt(max*k/4)}</text>`}
+  months.forEach((m,i)=>{const x=L+i*iw,cx=x+iw/2;let y=T+ph,rects="";const lines=[];
+    groups.forEach(g=>{const v=g.vals[i];if(v<=0)return;const h=v/max*ph;y-=h;rects+=`<rect x="${(cx-bw/2).toFixed(2)}" y="${y.toFixed(2)}" width="${bw.toFixed(2)}" height="${Math.max(h,0.5).toFixed(2)}" fill="${g.color}"/>`;lines.push(g.name+" : "+money(v))});
+    s+=`<g class="bar" data-m="${m}"><title>${safe(monthLabel(m))} — dépenses ${money(tots[i])}${lines.length>1||trendCatSel===""?"\n"+safe(lines.join("\n")):""}</title>${i===11?`<rect class="sel" x="${x+2}" y="${T}" width="${iw-4}" height="${ph}" rx="6"/>`:""}<rect x="${x}" y="${T}" width="${iw}" height="${ph+B}" fill="transparent"/>${rects}<text class="axis" x="${cx}" y="${H-10}" text-anchor="middle">${safe(fm.format(new Date(m+"-01T12:00:00")).replace(".",""))}</text></g>`});
+  box.innerHTML=`<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Évolution des dépenses par catégorie sur 12 mois"${document.body.classList.contains("priv")?' style="filter:blur(7px)"':""}>${s}</svg>`;
+  leg.innerHTML=groups.map(g=>`<span><i style="background:${g.color}"></i>${safe(g.name)}</span>`).join("")}
 function renderChart(){
+  renderCatChart();applyTrendSlide();
   const months=Array.from({length:12},(_,i)=>monthAdd(selectedMonth,i-11));
   const data=months.map(m=>{const fs=flowsFor(m);return{m,i:sum(fs,"in"),o:sum(fs,"out")}});
   if(data.every(d=>!d.i&&!d.o)){$("trend").innerHTML='<div class="empty">Aucune donnée sur les 12 derniers mois.</div>';return}
@@ -412,22 +502,29 @@ function renderEnvelopes(){
     <p class="small muted">Sur plusieurs mois, fixe, variable et réalisé sont cumulés. Écart = (fixe prévu + enveloppes) − réalisé : positif = marge, rouge = dépassement. « Dépassements » compte les mois clos où la part variable a dépassé l'enveloppe (3 derniers mois si la vue est sur un mois). Les catégories « Épargne » sont exclues.</p>
     ${watch.length?`<div class="notice warning">À corriger en priorité : <strong>${watch.map(safe).join(", ")}</strong> (dépassées sur la période, ou au-dessus de l'enveloppe au moins la moitié des mois). Relève l'enveloppe si c'est un besoin réel, sinon change l'habitude.</div>`:""}`}
 
+let poleSlide=0,poleCount=1;
 const PAL=["#285c9b","#147d62","#b94b4b","#a56a16","#6d4fa3","#2a8fa3","#c26a9a","#7a8a3a"];
 function renderPoles(){
   const ym=selectedMonth,N=effN(),rows=visibleRows(ym,N),totR=rows.reduce((s,r)=>s+r.real,0),basis=totR>0?"real":"budget";
   $("polesSub").textContent=(N===1?monthLabel(ym):N+" mois jusqu'à "+monthLabel(ym))+" · "+(basis==="real"?"dépenses réalisées":"dépenses prévues (rien de réalisé sur la période)");
   const list=rows.map(r=>({name:r.name,v:r[basis],real:r.real,budget:r.budget})).filter(x=>x.v>0).sort((a,b)=>b.v-a.v);
   if(!list.length){$("poles").innerHTML='<div class="card empty" style="grid-column:1/-1">Aucune dépense sur cette période.</div>';return}
-  const top=list.slice(0,7),rest=list.slice(7);
-  if(rest.length)top.push({name:"Autres ("+rest.length+")",v:rest.reduce((s,x)=>s+x.v,0),real:0,budget:0});
-  const tot=top.reduce((s,x)=>s+x.v,0);let off=25;
-  const col=i=>i<7?PAL[i]:"#9aa5b4";
-  const segs=top.map((x,i)=>{const p=x.v/tot*100,s=`<circle cx="21" cy="21" r="15.9155" fill="none" stroke="${col(i)}" stroke-width="6" stroke-dasharray="${p.toFixed(3)} ${(100-p).toFixed(3)}" stroke-dashoffset="${off.toFixed(3)}"/>`;off-=p;return s}).join("");
-  const leg=top.map((x,i)=>`<div><i style="background:${col(i)}"></i><span>${safe(x.name)}</span><span class="pc">${(x.v/tot*100).toFixed(x.v/tot<0.1?1:0).replace(".",",")} %</span><span>${mh(x.v)}</span></div>`).join("");
+  const PER=8,rest=list.slice(7),restTot=rest.reduce((s,x)=>s+x.v,0),totAll=list.reduce((s,x)=>s+x.v,0),nS=1+(rest.length?Math.ceil(rest.length/PER):0);
+  poleCount=nS;if(poleSlide>=nS)poleSlide=0;
+  const main=list.slice(0,7);if(rest.length)main.push({name:"Autres",v:restTot,lab:`<button class="linkbtn" data-poleto="1" title="Voir le détail des autres catégories">Autres (${rest.length}) ›</button>`});
+  const col0=i=>i<7?PAL[i]:"#9aa5b4",colP=i=>PAL[i%PAL.length];
+  const donut=(items,col,den,ctr,sub)=>{let off=25;const segs=items.map((x,i)=>{const p=x.v/den*100,s=`<circle cx="21" cy="21" r="15.9155" fill="none" stroke="${col(i)}" stroke-width="6" stroke-dasharray="${p.toFixed(3)} ${(100-p).toFixed(3)}" stroke-dashoffset="${off.toFixed(3)}"/>`;off-=p;return s}).join("");
+    return `<div class="donutwrap"><svg viewBox="0 0 42 42" role="img" aria-label="Répartition des dépenses par catégorie"><circle cx="21" cy="21" r="15.9155" fill="none" stroke="#edf0f4" stroke-width="6"/>${segs}</svg><div class="donutc"><strong>${mh(ctr)}</strong><small>${sub}</small></div></div>`};
+  const legend=(items,col,den)=>items.map((x,i)=>`<div><i style="background:${col(i)}"></i><span>${x.lab||safe(x.name)}</span><span class="pc">${(x.v/den*100).toFixed(x.v/den<0.1?1:0).replace(".",",")} %</span><span>${mh(x.v)}</span></div>`).join("");
+  let body;
+  if(poleSlide===0)body=donut(main,col0,totAll,totAll,basis==="real"?"dépensés":"prévus")+`<div class="leg">${legend(main,col0,totAll)}</div>`;
+  else{const items=rest.slice((poleSlide-1)*PER,poleSlide*PER);body=donut(items,colP,restTot,restTot,"« Autres »")+`<div class="leg">${legend(items,colP,restTot)}</div>`}
+  const nav=nS>1?`<div class="slidenav"><button class="secondary" data-poleshift="-1" aria-label="Précédent">‹</button><span class="dots">${Array.from({length:nS},(_,i)=>`<i class="${i===poleSlide?"on":""}"></i>`).join("")}</span><button class="secondary" data-poleshift="1" aria-label="Suivant">›</button></div>`:"";
+  const head=`<div class="sectionhead"><div class="slidehead"><h2>${poleSlide?"Détail de « Autres »":"Répartition"}</h2>${nav}</div>${poleSlide?`<span class="muted small">${rest.length} catégories · % du groupe « Autres »</span>`:""}</div>`;
   const bl=rows.filter(r=>r.real>0||r.budget>0).sort((a,b)=>Math.max(b.real,b.budget)-Math.max(a.real,a.budget)).slice(0,12),mx=Math.max(...bl.map(r=>Math.max(r.real,r.budget)))||1;
   const bars=bl.map(r=>`<div class="barrow" style="grid-template-columns:105px 1fr 150px"><span>${safe(r.name)}</span><div class="pbar" title="Réalisé ${money(r.real)} · prévu ${money(r.budget)}"><b style="width:${r.real/mx*100}%;background:${r.real>r.budget+0.005&&r.budget>0?"var(--red)":"var(--blue)"}"></b><u style="left:calc(${r.budget/mx*100}% - 1px)"></u></div><span class="amount">${mh(r.real)} <small class="muted">/ ${mh(r.budget)}</small></span></div>`).join("");
   $("poles").innerHTML=`<div class="card"><div class="sectionhead"><h2>Réalisé vs prévu</h2><span class="muted small">Trait noir = prévu (fixe + enveloppe) · rouge = dépassé</span></div><div class="barlist">${bars}</div></div>
-    <div class="card"><div class="sectionhead"><h2>Répartition</h2></div><div class="donutwrap"><svg viewBox="0 0 42 42" role="img" aria-label="Répartition des dépenses par catégorie"><circle cx="21" cy="21" r="15.9155" fill="none" stroke="#edf0f4" stroke-width="6"/>${segs}</svg><div class="donutc"><strong>${mh(tot)}</strong><small>${basis==="real"?"dépensés":"prévus"}</small></div></div><div class="leg">${leg}</div></div>`}
+    <div class="card">${head}${body}</div>`}
 
 function renderForecast(){renderBudget();renderPoles();renderEnvelopes();
   const n=Number($("horizon").value),months=Array.from({length:n},(_,i)=>monthAdd(selectedMonth,i)),inc=incomeEst();
@@ -731,11 +828,18 @@ $("trend").onclick=e=>{const g=e.target.closest("[data-m]");if(g){selectedMonth=
 $("fDate").value=todayStr();$("rStart").value=monthNow();
 $("fType").onchange=()=>fillCats("fCategory",$("fType").value);$("rType").onchange=()=>fillCats("rCategory",$("rType").value);
 $("addFlow").onclick=()=>{$("fDate").value=todayStr();$("flowForm").classList.remove("hidden")};$("cancelFlow").onclick=()=>$("flowForm").classList.add("hidden");
-$("saveFlow").onclick=()=>{const date=$("fDate").value,amount=Number($("fAmount").value);if(!date||!Number.isFinite(amount)||amount<=0){toast("Date et montant positif requis.");return}
-  const type=$("fType").value,cat=$("fCategory").value,freq=$("fRecurring").value||null,label=$("fLabel").value.trim();
+$("saveFlow").onclick=()=>{try{
+  const date=$("fDate").value,amount=Number(String($("fAmount").value).replace(/\s/g,"").replace(",","."));
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(date)||!Number.isFinite(amount)||amount<=0){toast("Date et montant positif requis.");return}
+  const type=$("fType").value,cat=$("fCategory").value,freq=$("fRecurring").value||null,label=$("fLabel").value.trim().slice(0,32);
+  if(!cat){toast("Choisis une catégorie.");return}
   vault.flows.push({id:uid(),date,type,amount:round2(amount),category:cat,label,recurrence:freq});
   if(freq)vault.recurrences.push({id:uid(),type,amount:round2(amount),category:cat,label,freq,day:Math.min(28,+date.slice(8,10)),start:date.slice(0,7),end:null,active:true});
-  $("fAmount").value="";$("fLabel").value="";$("fRecurring").value="";$("flowForm").classList.add("hidden");touch();renderAll()};
+  /* le mouvement doit être visible : on se place sur son mois et on lève le filtre de catégorie */
+  selectedMonth=date.slice(0,7);$("monthPick").value=selectedMonth;$("flFilterCat").value="";
+  $("fAmount").value="";$("fLabel").value="";$("fRecurring").value="";$("flowForm").classList.add("hidden");touch();renderAll();
+  toast("Mouvement ajouté ("+monthLabel(selectedMonth)+"). Exporte le coffre pour l'enregistrer.")
+}catch(err){toast("Ajout impossible : "+(err&&err.message||err))}};
 $("flowTable").onclick=e=>{const b=e.target.closest("[data-del-flow]");if(b&&confirm("Supprimer ce mouvement de la mémoire de travail ?")){vault.flows=vault.flows.filter(f=>f.id!==b.dataset.delFlow);touch();renderAll()}};
 $("flowTable").onchange=e=>{const s=e.target.closest("[data-flow-cat]");if(s){const f=vault.flows.find(x=>x.id===s.dataset.flowCat);if(f){f.category=s.value;touch();renderAll(true)}}};
 $("flFilterCat").onchange=renderFlowTable;
@@ -768,6 +872,12 @@ $("impMap").onchange=e=>{const t=e.target;if(t.dataset.map!==undefined){imp.map[
 $("impOnlyCheck").onchange=()=>imp&&renderImpMap();
 $("impOpts").onchange=e=>{if(e.target.id==="optFuture")imp.opts.future=e.target.checked;if(e.target.id==="optReplace")imp.opts.replace=e.target.checked;renderImpPreview()};
 $("impCancel").onclick=()=>{imp=null;resetImportUI()};$("impCommit").onclick=commitImport;
+$("trendPrev").onclick=$("trendNext").onclick=()=>{trendSlide=1-trendSlide;renderChart()};
+$("trendCats").onclick=e=>{const g=e.target.closest("[data-m]");if(g){selectedMonth=g.dataset.m;$("monthPick").value=selectedMonth;renderAll()}};
+$("trendCatSel").onchange=e=>{trendCatSel=e.target.value;renderCatChart()};
+$("poles").onclick=e=>{const b=e.target.closest("[data-poleshift],[data-poleto]");if(!b)return;
+  poleSlide=b.dataset.poleto!==undefined?+b.dataset.poleto:(poleSlide+ +b.dataset.poleshift+poleCount)%poleCount;renderPoles()};
+$("xlsxBtn").onclick=exportXlsx;
 if(!crypto||!crypto.subtle)toast("Web Crypto indisponible : ouvre l'application depuis localhost (voir le guide) pour chiffrer et ouvrir des coffres.");
 vault=blankVault();selectedMonth=monthNow();dirty=false;showApp();
 </script>
