@@ -43,6 +43,8 @@ dialog{border:0;border-radius:15px;padding:22px;max-width:440px;width:92vw;box-s
 .slidehead{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.slidehead h2{margin:0}.slidenav{display:inline-flex;align-items:center;gap:6px}.slidenav button{padding:2px 11px;font-size:17px;line-height:1.3;border-radius:8px}.dots{display:inline-flex;gap:5px;align-items:center}.dots i{width:7px;height:7px;border-radius:50%;background:#cfd6df;display:inline-block}.dots i.on{background:var(--blue)}.slideright{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.slideright select{width:auto;max-width:220px;padding:6px 10px}
 .linkbtn{background:none;border:0;padding:0;color:var(--blue);font-weight:650;text-align:left;border-radius:4px}.linkbtn:hover{text-decoration:underline}
 .legend span{display:inline-flex;align-items:center}
+.accgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}@media(max-width:650px){.accgrid{grid-template-columns:1fr}}
+.accgrid .card .big{display:block;font-size:26px;font-weight:750;letter-spacing:-.04em;margin:6px 0 2px}
 </style>
 </head>
 <body>
@@ -53,12 +55,13 @@ dialog{border:0;border-radius:15px;padding:22px;max-width:440px;width:92vw;box-s
     <div class="actions"><span id="dirty" class="badge hidden" role="status">● Modifications non exportées</span><button id="exportBtn">Chiffrer &amp; exporter</button><button class="secondary" id="importBtn">Ouvrir un coffre</button><button class="secondary" id="privBtn" aria-pressed="false">Masquer les montants</button><button class="danger" id="cleanBtn" title="Efface les données en mémoire et le stockage du navigateur">Nettoyer le navigateur</button><input id="fileIn" type="file" accept=".json,application/json" class="hidden"></div>
   </header>
   <nav class="nav" aria-label="Navigation">
-    <button class="active" data-tab="overview">Vue d'ensemble</button><button data-tab="flows">Flux financiers</button><button data-tab="recurring">Récurrences</button><button data-tab="forecast">Prévisions</button><button data-tab="cats">Catégories</button><button data-tab="import">Importer</button>
+    <button class="active" data-tab="overview">Vue d'ensemble</button><button data-tab="flows">Flux financiers</button><button data-tab="recurring">Récurrences</button><button data-tab="forecast">Prévisions</button><button data-tab="savings">Épargne &amp; solde</button><button data-tab="cats">Catégories</button><button data-tab="import">Importer</button>
   </nav>
   <main>
     <section id="tab-overview">
       <div class="sectionhead"><div><h2>Vue mensuelle</h2><div class="muted small">Lecture synthétique des entrées et sorties</div></div><div class="monthbar"><button class="secondary" id="prevMonth" aria-label="Mois précédent">‹</button><input type="month" id="monthPick"><button class="secondary" id="nextMonth" aria-label="Mois suivant">›</button></div></div>
       <div class="grid" id="metrics"></div>
+      <div class="accgrid section" id="accMetrics"></div>
       <div class="card section"><div class="sectionhead"><div class="slidehead"><h2 id="trendTitle">12 derniers mois</h2><div class="slidenav"><button class="secondary" id="trendPrev" aria-label="Graphique précédent">‹</button><span class="dots" id="trendDots"></span><button class="secondary" id="trendNext" aria-label="Graphique suivant">›</button></div></div><div class="slideright"><select id="trendCatSel" class="hidden" aria-label="Catégorie affichée"></select><span class="muted small" id="trendHint">Cliquer sur un mois pour le sélectionner</span></div></div><div id="trend"></div><div class="legend" id="trendLegend"><span><i style="background:var(--green)"></i>Recettes</span><span><i style="background:var(--red)"></i>Dépenses</span></div><div id="trendCats" class="hidden"></div><div class="legend hidden" id="trendCatLegend"></div></div>
       <div class="two section">
         <div class="card"><div class="sectionhead"><h2>Répartition des dépenses</h2><span class="muted small">Mois sélectionné</span></div><div id="categoryBars" class="barlist"></div></div>
@@ -76,6 +79,7 @@ dialog{border:0;border-radius:15px;padding:22px;max-width:440px;width:92vw;box-s
           <div class="field"><label for="fAmount">Montant (€)</label><input type="text" inputmode="decimal" id="fAmount" autocomplete="off" placeholder="0,00"></div>
           <div class="field"><label for="fCategory">Catégorie</label><select id="fCategory"></select></div>
           <div class="field"><label for="fLabel">Libellé neutre (facultatif)</label><input id="fLabel" maxlength="32" placeholder="Ex. abonnement A"></div>
+          <div class="field hidden" id="fToWrap"><label for="fTo">Verser sur le compte d'épargne</label><select id="fTo"></select></div>
           <div class="field"><label for="fRecurring">Créer aussi une récurrence</label><select id="fRecurring"><option value="">Non</option><option value="monthly">Mensuelle</option><option value="quarterly">Trimestrielle</option><option value="yearly">Annuelle</option></select></div>
         </div>
         <div class="formactions"><button class="secondary" id="cancelFlow">Annuler</button><button id="saveFlow">Ajouter au coffre en mémoire</button></div>
@@ -110,7 +114,7 @@ dialog{border:0;border-radius:15px;padding:22px;max-width:440px;width:92vw;box-s
         <div class="field"><label for="bSaving">Épargne cible par mois (€)</label><input id="bSaving" type="number" min="0" step="1" placeholder="0"></div>
         <div class="field"><label for="bSafety">Seuil de sécurité (€)</label><input id="bSafety" type="number" min="0" step="1" placeholder="0"></div>
         <div class="field"><label for="bCash">Solde disponible aujourd'hui (€)</label><input id="bCash" type="number" step="0.01" placeholder="à renseigner"></div>
-      </div><p class="small muted" style="margin:10px 0 0">Revenu laissé vide = estimé automatiquement. Le seuil de sécurité est le montant minimum que tu veux toujours garder sur tes comptes. Le solde est à mettre à jour de temps en temps.</p></div>
+      </div><p class="small muted" style="margin:10px 0 0">Revenu laissé vide = estimé automatiquement. Le seuil de sécurité est le montant minimum que tu veux toujours garder sur tes comptes. Le solde se met à jour tout seul avec les flux saisis ; ressaisis-le pour le recaler sur ton relevé.</p></div>
       <div class="grid section" id="capMetrics"></div>
       <div class="section" id="capDetail"></div>
       <div class="sectionhead section"><div><h2>Pôles de dépense par catégorie</h2><div class="muted small" id="polesSub"></div></div><div id="fcNav"></div></div>
@@ -121,6 +125,32 @@ dialog{border:0;border-radius:15px;padding:22px;max-width:440px;width:92vw;box-s
       <div class="grid" id="forecastMetrics"></div>
       <div class="card section"><div id="forecastTable"></div></div>
       <div class="notice section">Recettes : récurrences déclarées, à défaut revenu mensuel moyen. Les dépenses variables restent constantes d'un mois à l'autre ; les dépenses exceptionnelles (travaux, achat ponctuel) ne sont pas anticipées.</div>
+    </section>
+    <section id="tab-savings" class="hidden">
+      <div class="sectionhead"><div><h2>Épargne &amp; solde</h2><div class="muted small">Le solde évolue tout seul avec les flux saisis après ton dernier recalage</div></div><button id="accAdd">Ajouter un compte d'épargne</button></div>
+      <div id="accForm" class="card hidden" style="margin-bottom:14px">
+        <h2 style="font-size:16px;margin-top:0">Nouveau compte d'épargne</h2>
+        <div class="formgrid" style="grid-template-columns:repeat(4,minmax(0,1fr))">
+          <div class="field"><label for="aName">Nom</label><input id="aName" maxlength="32" placeholder="Ex. Livret A"></div>
+          <div class="field"><label for="aStart">Solde actuel (€)</label><input id="aStart" inputmode="decimal" placeholder="0,00"></div>
+          <div class="field"><label for="aRate">Taux annuel (%, facultatif)</label><input id="aRate" inputmode="decimal" placeholder="Ex. 1,5"></div>
+          <div class="field"><label for="aGoal">Objectif (€, facultatif)</label><input id="aGoal" inputmode="decimal" placeholder="Ex. 5000"></div>
+        </div>
+        <div class="formactions"><button class="secondary" id="accCancel">Annuler</button><button id="accSave">Ajouter le compte</button></div>
+      </div>
+      <div class="accgrid" id="accList"></div>
+      <div class="card section"><div class="sectionhead"><h2>Virements &amp; intérêts</h2><span class="muted small">Un virement interne n'est ni une dépense ni une recette</span></div>
+        <div class="formgrid" style="grid-template-columns:repeat(5,minmax(0,1fr))">
+          <div class="field"><label for="tDate">Date</label><input type="date" id="tDate"></div>
+          <div class="field"><label for="tFrom">De</label><select id="tFrom"></select></div>
+          <div class="field"><label for="tTo">Vers</label><select id="tTo"></select></div>
+          <div class="field"><label for="tAmount">Montant (€)</label><input id="tAmount" inputmode="decimal" placeholder="0,00"></div>
+          <div class="field"><label for="tLabel">Libellé neutre</label><input id="tLabel" maxlength="32" placeholder="Ex. intérêts"></div>
+        </div>
+        <div class="formactions"><button id="tAdd">Enregistrer le virement</button></div>
+        <div id="trList" class="section"></div></div>
+      <div class="card section"><div class="sectionhead"><h2>Évolution sur 12 mois</h2><span class="muted small">Soldes de fin de mois</span></div><div id="accChart"></div><div class="legend" id="accLegend"></div></div>
+      <div class="notice section">Règle de calcul : solde actuel = dernier solde recalé + flux datés après ce recalage (et jusqu'à aujourd'hui). La date du recalage est gardée en interne : les flux antérieurs, déjà inclus dans ton relevé, ne sont pas comptés. Un apport « Extérieur → épargne » (intérêts…) augmente l'épargne sans compter comme recette. Pour alimenter une épargne depuis « Flux financiers », choisis la catégorie Épargne et le compte à créditer.</div>
     </section>
     <section id="tab-cats" class="hidden">
       <div class="sectionhead"><div><h2>Catégories</h2><div class="muted small">Renommer, fusionner, ajouter ou supprimer. Toute modification s'applique à l'ensemble des mouvements et récurrences existants.</div></div></div>
@@ -192,7 +222,7 @@ function normalizeVault(v){
   else DEFAULT_CATS.forEach(([n,k])=>addCat(n,k));
   const ensure=(name,type)=>(addCat(name||"Autre",type==="in"?"in":"out")||addCat("Autre","both")).name;
   v.flows.forEach(f=>{if(!f||!/^\d{4}-\d{2}-\d{2}$/.test(f.date)||!["in","out"].includes(f.type))return;const a=Number(f.amount);if(!Number.isFinite(a)||a<=0)return;
-    const o={id:String(f.id||uid()),date:f.date,type:f.type,amount:round2(a),category:ensure(f.category,f.type),label:String(f.label||"").slice(0,32),recurrence:f.recurrence||null};if(f.src==="import"||f.src==="import-agg")o.src=f.src;out.flows.push(o)});
+    const o={id:String(f.id||uid()),date:f.date,type:f.type,amount:round2(a),category:ensure(f.category,f.type),label:String(f.label||"").slice(0,32),recurrence:f.recurrence||null};if(f.src==="import"||f.src==="import-agg")o.src=f.src;if(Number.isFinite(f.ts)&&f.ts>0)o.ts=f.ts;if(f.type==="out"&&typeof f.to==="string")o.to=f.to;out.flows.push(o)});
   v.recurrences.forEach(r=>{if(!r||!["in","out"].includes(r.type)||!["monthly","quarterly","yearly"].includes(r.freq)||!/^\d{4}-\d{2}$/.test(r.start))return;const a=Number(r.amount);if(!Number.isFinite(a)||a<=0)return;
     out.recurrences.push({id:String(r.id||uid()),type:r.type,amount:round2(a),category:ensure(r.category,r.type),label:String(r.label||"").slice(0,32),freq:r.freq,day:Math.min(28,Math.max(1,parseInt(r.day)||1)),start:r.start,end:/^\d{4}-\d{2}$/.test(r.end||"")?r.end:null,active:r.active!==false})});
   if(Array.isArray(v.rules))v.rules.forEach(r=>{if(r&&typeof r.k==="string"&&typeof r.c==="string"&&r.k.length<=40)out.rules.push({k:nz(r.k),c:ensure(r.c,"out")})});
@@ -202,9 +232,23 @@ function normalizeVault(v){
     cash:b.cash!=null&&b.cash!==""&&Number.isFinite(Number(b.cash))&&Math.abs(Number(b.cash))<=1e9?round2(Number(b.cash)):null,
     cashDate:/^\d{4}-\d{2}-\d{2}$/.test(b.cashDate||"")?b.cashDate:null,envelopes:{}};
   if(b.envelopes&&typeof b.envelopes==="object")Object.entries(b.envelopes).forEach(([k,x])=>{const c=out.categories.find(c=>nz(c.name)===nz(k)),a=pos(x);if(c&&a!==null)out.budget.envelopes[c.name]=a});
+  const idOk=s=>typeof s==="string"&&s.length>0&&s.length<=64,dre=/^\d{4}-\d{2}-\d{2}$/;
+  const anch=x=>{if(!x||typeof x!=="object")return null;const am=Number(x.amount);if(!Number.isFinite(am)||Math.abs(am)>1e9||!dre.test(x.date||""))return null;return{amount:round2(am),date:x.date,ts:Number.isFinite(x.ts)&&x.ts>0?x.ts:Date.now()}};
+  out.accounts=[];
+  (Array.isArray(v.accounts)?v.accounts:[]).forEach(a=>{if(!a||!idOk(a.id)||out.accounts.some(x=>x.id===a.id))return;const name=cleanName(a.name);if(!name)return;
+    let kind=a.kind==="current"?"current":"savings";if(kind==="current"&&out.accounts.some(x=>x.kind==="current"))kind="savings";
+    const rate=Number(a.rate),goal=Number(a.goal);
+    out.accounts.push({id:a.id,name,kind,anchor:anch(a.anchor),rate:a.rate!=null&&a.rate!==""&&rate>=0&&rate<=100?rate:null,goal:a.goal!=null&&a.goal!==""&&goal>0&&goal<=1e9?round2(goal):null})});
+  if(!out.accounts.some(x=>x.kind==="current")){const mig=out.budget.cash!==null?{amount:out.budget.cash,date:out.budget.cashDate||todayStr(),ts:Date.now()}:null;
+    out.accounts.unshift({id:out.accounts.some(x=>x.id==="cur")?uid():"cur",name:"Compte courant",kind:"current",anchor:mig,rate:null,goal:null})}
+  const aid=new Set(out.accounts.map(x=>x.id));out.transfers=[];
+  (Array.isArray(v.transfers)?v.transfers:[]).forEach(t=>{if(!t||!dre.test(t.date||""))return;const am=Number(t.amount);if(!Number.isFinite(am)||am<=0||am>1e9)return;
+    const from=t.from??null,to=t.to??null;if((from!==null&&!aid.has(from))||(to!==null&&!aid.has(to))||from===to)return;
+    out.transfers.push({id:String(t.id||uid()),date:t.date,from,to,amount:round2(am),label:String(t.label||"").slice(0,32),ts:Number.isFinite(t.ts)&&t.ts>0?t.ts:0,interest:from===null})});
+  out.flows.forEach(f=>{if(f.to){const ac=out.accounts.find(x=>x.id===f.to);if(!ac||ac.kind!=="savings")delete f.to}});
   return out;
 }
-function blankVault(){const v={version:3,createdAt:new Date().toISOString(),categories:[],flows:[],recurrences:[],rules:[],budget:{income:null,saving:0,safety:0,cash:null,cashDate:null,envelopes:{}}};DEFAULT_CATS.forEach(([name,kind])=>v.categories.push({name,kind}));return v}
+function blankVault(){const v={version:3,createdAt:new Date().toISOString(),categories:[],flows:[],recurrences:[],rules:[],accounts:[{id:"cur",name:"Compte courant",kind:"current",anchor:null,rate:null,goal:null}],transfers:[],budget:{income:null,saving:0,safety:0,cash:null,cashDate:null,envelopes:{}}};DEFAULT_CATS.forEach(([name,kind])=>v.categories.push({name,kind}));return v}
 const catByName=n=>vault.categories.find(c=>nz(c.name)===nz(n));
 const catsFor=type=>vault.categories.filter(c=>c.kind==="both"||c.kind===type);
 
@@ -268,6 +312,8 @@ function buildXlsx(){
   const B=bud(),bl=[H(["Paramètre","Valeur"]),["Revenu mensuel moyen (€, vide = estimé)",B.income===null?"":{v:B.income,s:3}],["Épargne cible par mois (€)",{v:B.saving||0,s:3}],["Seuil de sécurité (€)",{v:B.safety||0,s:3}],["Solde disponible (€)",B.cash===null?"":{v:B.cash,s:3}],["Date du solde",B.cashDate||""],[],H(["Catégorie","Enveloppe variable mensuelle (€)"])];
   Object.entries(B.envelopes).forEach(([k,v])=>bl.push([k,{v,s:3}]));
   sh.push(["Budget",sheetXml(bl,[40,32],{})]);
+  sh.push(["Comptes",sheetXml([H(["Compte","Type","Solde actuel (€)","Taux annuel (%)","Objectif (€)"])].concat(vault.accounts.map(a=>[a.name,a.kind==="current"?"Compte courant":"Épargne",a.anchor?{v:accNow(a),s:3}:"",a.rate===null?"":a.rate,a.goal===null?"":{v:a.goal,s:3}])),[26,16,18,16,16],{freeze:1})]);
+  sh.push(["Virements",sheetXml([H(["Date","De","Vers","Montant (€)","Libellé"])].concat([...vault.transfers].sort((a,b)=>a.date.localeCompare(b.date)).map(t=>[{v:serial(t.date),s:2},accName(t.from),accName(t.to),{v:t.amount,s:3},t.label||""])),[12,28,28,14,24],{freeze:1,filter:1})]);
   const X='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>',R="http://schemas.openxmlformats.org/officeDocument/2006/relationships",M="http://schemas.openxmlformats.org/spreadsheetml/2006/main",CT="application/vnd.openxmlformats-officedocument.spreadsheetml";
   const styles=`${X}<styleSheet xmlns="${M}"><numFmts count="2"><numFmt numFmtId="164" formatCode="yyyy\\-mm\\-dd"/><numFmt numFmtId="165" formatCode="#,##0.00\\ &quot;€&quot;"/></numFmts><fonts count="2"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font></fonts><fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FFE5E9EF"/><bgColor indexed="64"/></patternFill></fill></fills><borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="6"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1"/><xf numFmtId="164" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/><xf numFmtId="165" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/><xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/><xf numFmtId="165" fontId="1" fillId="0" borderId="0" xfId="0" applyNumberFormat="1" applyFont="1"/></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>`;
   const files=[["[Content_Types].xml",`${X}<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="${CT}.sheet.main+xml"/>${sh.map((_,i)=>`<Override PartName="/xl/worksheets/sheet${i+1}.xml" ContentType="${CT}.worksheet+xml"/>`).join("")}<Override PartName="/xl/styles.xml" ContentType="${CT}.styles+xml"/></Types>`],
@@ -448,9 +494,9 @@ function renderBudget(){
   const incLeft=Math.max(0,inc.v-sum(flowsFor(cur),"in"));
   const fixLeft=vault.recurrences.filter(r=>r.active!==false&&r.type==="out"&&!isSaving(r.category)&&due(r,cur)&&r.day>day).reduce((s,r)=>s+r.amount,0);
   const saved=flowsFor(cur).filter(f=>f.type==="out"&&isSaving(f.category)).reduce((s,f)=>s+f.amount,0),savLeft=Math.max(0,sv-saved);
-  const hasCash=B.cash!==null,exc=hasCash?B.cash+incLeft-fixLeft-varLeft-savLeft-(B.safety||0):null;
+  const cashNow=curCash(),hasCash=cashNow!==null,exc=hasCash?cashNow+incLeft-fixLeft-varLeft-savLeft-(B.safety||0):null;
   const setv=(id,v)=>{const el=$(id);if(document.activeElement!==el)el.value=v===null||v===undefined?"":v};
-  setv("bIncome",B.income);setv("bSaving",B.saving||"");setv("bSafety",B.safety||"");setv("bCash",B.cash);
+  setv("bIncome",B.income);setv("bSaving",B.saving||"");setv("bSafety",B.safety||"");setv("bCash",cashNow);
   $("bIncome").placeholder=B.income===null&&inc.v>0?"auto : "+Math.round(inc.v)+" €":"auto";
   $("capMetrics").innerHTML=[
     ["Revenu mensuel moyen",inc.v,inc.src,"green"],
@@ -462,14 +508,14 @@ function renderBudget(){
   const msg=inc.v<=0?'<div class="notice warning">Aucun revenu connu : saisis un revenu mensuel ou importe des mois comportant des recettes.</div>'
     :margin<0?`<div class="notice warning">Tes enveloppes variables (${mh(varBud)}) dépassent le plafond de ${mh(-margin)} par mois : c'est là qu'il faut corriger en priorité.</div>`
     :`<div class="notice okbox">Tes enveloppes variables tiennent sous le plafond, avec ${mh(margin)} de marge par mois.</div>`;
-  const stale=B.cashDate&&monthDiff(B.cashDate.slice(0,7),cur)>=0&&(new Date(todayStr())-new Date(B.cashDate))/864e5>7;
+  const stale=false;
   $("capDetail").innerHTML=`<div class="two"><div class="card"><div class="sectionhead"><h2>Plafond mensuel structurel</h2></div><table><tbody>
     ${calLine("Revenu mensuel moyen",inc.v,"+")}${calLine("Charges fixes lissées",fx,"−")}${calLine("Épargne cible",sv,"−")}${calLine("Plafond pour les dépenses variables",cap,"",true)}
     ${calLine("Enveloppes variables prévues (total)",varBud,"−")}${calLine("Marge structurelle",margin,"",true)}</tbody></table>
     <div style="margin-top:12px">${msg}</div>
     <p class="small muted" style="margin-bottom:0">Reste dans les enveloppes ce mois-ci : ${mh(varLeft)}, soit ${mh(varLeft/remDays)} par jour sur ${remDays} jour(s).</p></div>
     <div class="card"><div class="sectionhead"><h2>Dépense exceptionnelle supportable</h2></div>${hasCash?`<table><tbody>
-    ${calLine("Solde disponible"+(B.cashDate?" (au "+B.cashDate.split("-").reverse().join("/")+")":""),B.cash,"")}${calLine("Recettes encore attendues ce mois-ci",incLeft,"+")}${calLine("Charges fixes restantes",fixLeft,"−")}${calLine("Dépenses variables restantes (enveloppes)",varLeft,"−")}${calLine("Épargne restant à mettre de côté",savLeft,"−")}${calLine("Seuil de sécurité",B.safety||0,"−")}${calLine("Montant supportable",exc,"",true)}</tbody></table>
+    ${calLine("Solde disponible (compte courant)",cashNow,"")}${calLine("Recettes encore attendues ce mois-ci",incLeft,"+")}${calLine("Charges fixes restantes",fixLeft,"−")}${calLine("Dépenses variables restantes (enveloppes)",varLeft,"−")}${calLine("Épargne restant à mettre de côté",savLeft,"−")}${calLine("Seuil de sécurité",B.safety||0,"−")}${calLine("Montant supportable",exc,"",true)}</tbody></table>
     ${exc<0?'<div class="notice warning" style="margin-top:12px">Tu passerais déjà sous ton seuil de sécurité d\'ici la fin du mois sans aucune dépense exceptionnelle.</div>':""}
     ${stale?'<p class="small muted" style="margin-bottom:0">Ton solde date de plus de 7 jours : mets-le à jour pour que ce montant reste fiable.</p>':""}`
     :'<div class="notice">Indique ton solde disponible (comptes courants, hors épargne bloquée) pour calculer ce montant.</div>'}</div></div>`}
@@ -533,6 +579,65 @@ function renderForecast(){renderBudget();renderPoles();renderEnvelopes();
   const rows=months.map(m=>{const r=recurringFor(m),rin=recIn>0?r.in:inc.v,rout=r.out+V;totals.in+=rin;totals.out+=rout;return{m,in:rin,fix:r.out,v:V,out:rout}});
   $("forecastMetrics").innerHTML=[["Recettes prévues",totals.in,"green"],["Dépenses prévues",totals.out,"red"],["Solde prévisionnel",totals.in-totals.out,totals.in>=totals.out?"green":"red"],["Moyenne mensuelle",(totals.out-totals.in)/n,"amber"]].map(x=>`<div class="card metric"><small>${x[0]}</small><strong class="${x[2]}">${mh(x[1])}</strong><em>${x[0]==="Moyenne mensuelle"?"Sorties nettes moyennes":n+" mois cumulés"}</em></div>`).join("");
   $("forecastTable").innerHTML=`<div style="overflow-x:auto"><table><thead><tr><th>Mois</th><th style="text-align:right">Recettes prévues</th><th style="text-align:right">Charges fixes</th><th style="text-align:right">Dépenses variables</th><th style="text-align:right">Solde prévu</th></tr></thead><tbody>${rows.map(r=>`<tr><td style="text-transform:capitalize">${monthLabel(r.m)}</td><td class="num green">${mh(r.in)}</td><td class="num red">${mh(r.fix)}</td><td class="num red">${mh(r.v)}</td><td class="num ${(r.in-r.out)>=0?"green":"red"}">${mh(r.in-r.out)}</td></tr>`).join("")}</tbody></table></div>`}
+/* ======================== Comptes : solde courant & épargne ======================== */
+const curAcc=()=>vault.accounts.find(a=>a.kind==="current");
+const savAccs=()=>vault.accounts.filter(a=>a.kind==="savings");
+const accName=id=>id?(vault.accounts.find(a=>a.id===id)||{name:"?"}).name:"Extérieur (intérêts, apports…)";
+const dayStr=d=>d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
+const monthEnd=ym=>{const[y,m]=ym.split("-").map(Number);return dayStr(new Date(y,m,0))};
+const fr1=x=>String(x).replace(".",",");
+function accEffects(a){const L=[];
+  if(a.kind==="current")vault.flows.forEach(f=>L.push({date:f.date,ts:f.ts||0,amt:f.type==="in"?f.amount:-f.amount}));
+  vault.flows.forEach(f=>{if(f.to===a.id&&f.type==="out")L.push({date:f.date,ts:f.ts||0,amt:f.amount})});
+  vault.transfers.forEach(t=>{if(t.to===a.id)L.push({date:t.date,ts:t.ts||0,amt:t.amount,int:t.from===null});if(t.from===a.id)L.push({date:t.date,ts:t.ts||0,amt:-t.amount})});
+  return L}
+/* solde à la date d : ancrage + flux postérieurs (ou, avant l'ancrage, ancrage − flux intermédiaires) */
+function accAt(a,d){if(!a.anchor)return null;const an=a.anchor,after=x=>x.date>an.date||(x.date===an.date&&x.ts>an.ts);let b=an.amount;
+  accEffects(a).forEach(x=>{if(d>=an.date){if(after(x)&&x.date<=d)b+=x.amt}else if(!after(x)&&x.date>d)b-=x.amt});return round2(b)}
+const accNow=a=>accAt(a,todayStr());
+const curCash=()=>{const c=curAcc();return c&&c.anchor?accNow(c):null};
+function renderAccCards(){
+  const el=$("accMetrics");if(!el)return;const c=curAcc(),now=new Date(),pme=dayStr(new Date(now.getFullYear(),now.getMonth(),0)),B=bud();
+  const dl=(d)=>`<span class="${d>=0?"green":"red"}">${d>=0?"+":"−"}${mh(Math.abs(d))}</span> depuis le 1er du mois`;
+  const none='<button class="linkbtn" data-gosav="1">Renseigner le solde ›</button>';
+  const cb=c&&c.anchor?accNow(c):null,low=cb!==null&&(B.safety||0)>0&&cb<B.safety;
+  const sv=savAccs(),sa=sv.filter(a=>a.anchor),sb=sa.length?round2(sa.reduce((s,a)=>s+accNow(a),0)):null,sp=sa.length?sa.reduce((s,a)=>s+accAt(a,pme),0):0;
+  const goal=sa.reduce((s,a)=>s+(a.goal||0),0);
+  el.innerHTML=`<div class="card metric"><small>Solde actuel</small><strong class="${cb===null?"":(cb>=0&&!low?"green":"red")}">${cb===null?"—":mh(cb)}</strong><em>${cb===null?none:(low?"Sous le seuil de sécurité · ":"")+dl(cb-accAt(c,pme))}</em></div>
+  <div class="card metric"><small>Épargne</small><strong class="green">${sb===null?"—":mh(sb)}</strong><em>${sb===null?(sv.length?none:'<button class="linkbtn" data-gosav="1">Ajouter un compte d\'épargne ›</button>'):dl(sb-sp)+(goal>0?` · ${Math.round(sa.filter(a=>a.goal).reduce((s,a)=>s+accNow(a),0)/goal*100)} % des objectifs`:"")}</em></div>`}
+function projInfo(a,bal){
+  if(bal===null)return'<p class="small muted" style="margin:10px 0 0">Recale le solde pour activer la projection.</p>';
+  const cm=monthNow(),m3=[1,2,3].map(i=>monthAdd(cm,-i)),dep=round2(accEffects(a).filter(x=>!x.int&&m3.includes(x.date.slice(0,7))).reduce((s,x)=>s+x.amt,0)/3);
+  const r=a.rate?Math.pow(1+a.rate/100,1/12)-1:0,step=b=>b*(1+r)+dep;let b12=bal;for(let i=0;i<12;i++)b12=step(b12);
+  let g="";if(a.goal){if(bal>=a.goal)g="Objectif atteint.";else{let b=bal,n=0;while(b<a.goal&&n<600){b=step(b);n++}g=n<600?`Objectif atteint vers <strong>${safe(monthLabel(monthAdd(cm,n)))}</strong> à ce rythme.`:"Objectif non atteint avec le rythme actuel."}}
+  return `<p class="small" style="margin:10px 0 0">Dans 12 mois : <strong>${mh(round2(b12))}</strong> <span class="muted">(versements moyens ${mh(dep)}/mois sur 3 mois${a.rate?`, taux ${fr1(a.rate)} %`:""})</span>${g?`<br>${g}`:""}</p>`}
+function renderSavings(){
+  if(!$("accList"))return;
+  $("accList").innerHTML=vault.accounts.map(a=>{const bal=a.anchor?accNow(a):null,sv=a.kind==="savings",pct=sv&&a.goal&&bal!==null?Math.min(100,Math.max(0,Math.round(bal/a.goal*100))):null;
+    return `<div class="card"><div class="sectionhead" style="margin-bottom:4px"><h2>${safe(a.name)}</h2><span class="pill ${sv?"in":"both"}">${sv?"Épargne":"Compte courant"}</span></div>
+    <span class="big ${bal!==null&&bal<0?"red":""}">${bal===null?"—":mh(bal)}</span>
+    ${sv?`<div class="small muted">${a.rate!==null?"Taux "+fr1(a.rate)+" %":"Taux non renseigné"}${a.goal?` · Objectif ${mh(a.goal)}`:""}</div>`:`<div class="small muted">Alimenté par les flux financiers</div>`}
+    ${pct!==null?`<div class="pbar" style="margin-top:10px"><b style="width:${pct}%;background:var(--green)"></b></div><div class="small muted" style="margin-top:4px">${pct} % de l'objectif</div>`:""}
+    ${sv?projInfo(a,bal):""}
+    <div class="formactions" style="justify-content:flex-start"><button class="secondary" data-recal="${safe(a.id)}">Recaler le solde</button><button class="secondary" data-editacc="${safe(a.id)}">Modifier</button>${sv?`<button class="danger" data-delacc="${safe(a.id)}">Supprimer</button>`:""}</div></div>`}).join("");
+  const opts='<option value="">Extérieur (intérêts, apports…)</option>'+vault.accounts.map(a=>`<option value="${safe(a.id)}">${safe(a.name)}</option>`).join(""),f=$("tFrom"),t=$("tTo");
+  const cf=f.dataset.init?f.value:curAcc().id,ct=t.dataset.init?t.value:(savAccs()[0]||{id:""}).id;
+  f.innerHTML=opts;t.innerHTML=opts;f.dataset.init=t.dataset.init="1";f.value=[...f.options].some(o=>o.value===cf)?cf:curAcc().id;t.value=[...t.options].some(o=>o.value===ct)?ct:"";
+  const trs=[...vault.transfers].sort((a,b)=>b.date.localeCompare(a.date)||(b.ts||0)-(a.ts||0)).slice(0,30);
+  $("trList").innerHTML=trs.length?`<div style="overflow-x:auto"><table><thead><tr><th>Date</th><th>De</th><th>Vers</th><th>Libellé</th><th style="text-align:right">Montant</th><th></th></tr></thead><tbody>${trs.map(x=>`<tr><td>${safe(x.date)}</td><td>${safe(accName(x.from))}</td><td>${safe(accName(x.to))}</td><td>${safe(x.label||"—")}</td><td class="num">${mh(x.amount)}</td><td><button class="danger" style="padding:5px 8px" data-deltr="${safe(x.id)}" aria-label="Supprimer">×</button></td></tr>`).join("")}</tbody></table></div>`:'<div class="empty">Aucun virement enregistré.</div>';
+  const months=Array.from({length:12},(_,i)=>monthAdd(monthNow(),i-11)),td=todayStr(),dOf=m=>m<monthNow()?monthEnd(m):td,c=curAcc(),sa=savAccs().filter(a=>a.anchor);
+  const series=[["Solde courant",c&&c.anchor?months.map(m=>accAt(c,dOf(m))):null,"#285c9b"],["Épargne totale",sa.length?months.map(m=>round2(sa.reduce((s,a)=>s+accAt(a,dOf(m)),0))):null,"#147d62"]].filter(x=>x[1]);
+  if(!series.length){$("accChart").innerHTML='<div class="empty">Recale un solde pour voir son évolution.</div>';$("accLegend").innerHTML="";return}
+  const all=series.flatMap(x=>x[1]),mn0=Math.min(...all),mx0=Math.max(...all),pd=(mx0-mn0)*0.08||Math.max(1,Math.abs(mx0)*0.1),mn=mn0-pd,mx=mx0+pd,W=720,H=220,L=62,B=26,T=12,xs=i=>L+(W-L-12)*i/11,ys=v=>T+(H-T-B)*(1-(v-mn)/(mx-mn)),fm=new Intl.DateTimeFormat("fr-FR",{month:"short"});
+  let s="";for(let k=0;k<=4;k++){const v=mn+(mx-mn)*k/4,y=ys(v);s+=`<line class="gridline" x1="${L}" x2="${W}" y1="${y}" y2="${y}"/><text class="axis" x="${L-6}" y="${y+3}" text-anchor="end">${kfmt(v)}</text>`}
+  months.forEach((m,i)=>{s+=`<text class="axis" x="${xs(i)}" y="${H-8}" text-anchor="middle">${safe(fm.format(new Date(m+"-01T12:00:00")).replace(".",""))}</text>`});
+  series.forEach(([n,vals,col])=>{s+=`<polyline fill="none" stroke="${col}" stroke-width="2.5" stroke-linejoin="round" points="${vals.map((v,i)=>xs(i).toFixed(1)+","+ys(v).toFixed(1)).join(" ")}"/>`+vals.map((v,i)=>`<circle cx="${xs(i).toFixed(1)}" cy="${ys(v).toFixed(1)}" r="3.5" fill="${col}"><title>${safe(n)} — ${safe(monthLabel(months[i]))} : ${money(v)}</title></circle>`).join("")});
+  $("accChart").innerHTML=`<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Évolution du solde et de l'épargne"${document.body.classList.contains("priv")?' style="filter:blur(7px)"':""}>${s}</svg>`;
+  $("accLegend").innerHTML=series.map(x=>`<span><i style="background:${x[2]}"></i>${x[0]}</span>`).join("")}
+function syncFTo(){const sv=savAccs(),show=sv.length>0&&$("fType").value==="out"&&isSaving($("fCategory").value),sel=$("fTo"),cur=sel.value;
+  sel.innerHTML='<option value="">Aucun (rien n\'est crédité sur l\'épargne)</option>'+sv.map(a=>`<option value="${safe(a.id)}">${safe(a.name)}</option>`).join("");
+  if(sv.some(a=>a.id===cur))sel.value=cur;$("fToWrap").classList.toggle("hidden",!show)}
+const numClean=s=>numOrNull(String(s||"").replace(/\s/g,""));
 const KIND={out:"Dépenses",in:"Recettes",both:"Les deux"};
 function usage(name){const f=vault.flows.filter(x=>x.category===name);return{n:f.length,r:vault.recurrences.filter(x=>x.category===name).length,out:sum(f,"out"),in:sum(f,"in")}}
 function renderCats(){
@@ -540,8 +645,8 @@ function renderCats(){
   $("ruleMem").innerHTML=vault.rules.length?vault.rules.map((r,i)=>`<div class="listitem"><span>« ${safe(r.k)} » → <strong>${safe(r.c)}</strong></span><button class="danger" data-delrule="${i}">Oublier</button></div>`).join("")+'<p class="small muted">Ces mots-clés sont stockés dans le coffre chiffré. N\'y mets jamais de nom propre ou de commerçant.</p>':'<div class="empty">Aucune règle mémorisée. Tu peux en enregistrer lors d\'un import (mots génériques uniquement).</div>';
 }
 function fillCats(id,type){const s=$(id),cur=s.value,list=catsFor(type);s.innerHTML=list.map(c=>`<option value="${safe(c.name)}">${safe(c.name)}</option>`).join("");if(list.some(c=>c.name===cur))s.value=cur}
-function renderAll(skipTable){fillCats("fCategory",$("fType").value);fillCats("rCategory",$("rType").value);fillFilter();renderMetrics();renderChart();renderBars();renderInsight();if(!skipTable)renderFlowTable();renderRecent();renderRules();renderForecast();renderCats();renderNav()}
-function tab(name){document.querySelectorAll(".nav button").forEach(b=>b.classList.toggle("active",b.dataset.tab===name));["overview","flows","recurring","forecast","cats","import"].forEach(t=>$("tab-"+t).classList.toggle("hidden",t!==name))}
+function renderAll(skipTable){fillCats("fCategory",$("fType").value);fillCats("rCategory",$("rType").value);fillFilter();renderMetrics();renderChart();renderBars();renderInsight();if(!skipTable)renderFlowTable();renderRecent();renderRules();renderForecast();renderCats();renderNav();renderAccCards();renderSavings();syncFTo()}
+function tab(name){document.querySelectorAll(".nav button").forEach(b=>b.classList.toggle("active",b.dataset.tab===name));["overview","flows","recurring","forecast","savings","cats","import"].forEach(t=>$("tab-"+t).classList.toggle("hidden",t!==name))}
 
 /* ======================== Catégories : renommer, fusionner, supprimer ======================== */
 function reassign(from,to){{const E=bud().envelopes;if(E[from]!==undefined){if(E[to]===undefined&&to!==from)E[to]=E[from];delete E[from]}}vault.flows.forEach(f=>{if(f.category===from)f.category=to});vault.recurrences.forEach(r=>{if(r.category===from)r.category=to});vault.rules.forEach(r=>{if(r.c===from)r.c=to})}
@@ -822,18 +927,18 @@ document.querySelectorAll(".nav button").forEach(b=>b.addEventListener("click",(
 $("importBtn").onclick=()=>{if(dirty&&!confirm("Des modifications non exportées seront perdues. Ouvrir un autre coffre quand même ?"))return;$("fileIn").click()};
 $("fileIn").onchange=e=>importFile(e.target.files[0]);
 $("exportBtn").onclick=exportVault;$("cleanBtn").onclick=cleanBrowser;
-$("privBtn").onclick=()=>{const on=document.body.classList.toggle("priv");$("privBtn").setAttribute("aria-pressed",on);$("privBtn").textContent=on?"Afficher les montants":"Masquer les montants";renderChart()};
+$("privBtn").onclick=()=>{const on=document.body.classList.toggle("priv");$("privBtn").setAttribute("aria-pressed",on);$("privBtn").textContent=on?"Afficher les montants":"Masquer les montants";renderChart();renderSavings()};
 $("monthPick").onchange=e=>{if(e.target.value){selectedMonth=e.target.value;renderAll()}};$("prevMonth").onclick=()=>{selectedMonth=monthAdd(selectedMonth,-1);$("monthPick").value=selectedMonth;renderAll()};$("nextMonth").onclick=()=>{selectedMonth=monthAdd(selectedMonth,1);$("monthPick").value=selectedMonth;renderAll()};
 $("trend").onclick=e=>{const g=e.target.closest("[data-m]");if(g){selectedMonth=g.dataset.m;$("monthPick").value=selectedMonth;renderAll()}};
 $("fDate").value=todayStr();$("rStart").value=monthNow();
-$("fType").onchange=()=>fillCats("fCategory",$("fType").value);$("rType").onchange=()=>fillCats("rCategory",$("rType").value);
+$("fType").onchange=()=>{fillCats("fCategory",$("fType").value);syncFTo()};$("rType").onchange=()=>fillCats("rCategory",$("rType").value);
 $("addFlow").onclick=()=>{$("fDate").value=todayStr();$("flowForm").classList.remove("hidden")};$("cancelFlow").onclick=()=>$("flowForm").classList.add("hidden");
 $("saveFlow").onclick=()=>{try{
   const date=$("fDate").value,amount=Number(String($("fAmount").value).replace(/\s/g,"").replace(",","."));
   if(!/^\d{4}-\d{2}-\d{2}$/.test(date)||!Number.isFinite(amount)||amount<=0){toast("Date et montant positif requis.");return}
   const type=$("fType").value,cat=$("fCategory").value,freq=$("fRecurring").value||null,label=$("fLabel").value.trim().slice(0,32);
   if(!cat){toast("Choisis une catégorie.");return}
-  vault.flows.push({id:uid(),date,type,amount:round2(amount),category:cat,label,recurrence:freq});
+  const to=(type==="out"&&!$("fToWrap").classList.contains("hidden")&&$("fTo").value)||null,nf={id:uid(),date,type,amount:round2(amount),category:cat,label,recurrence:freq,ts:Date.now()};if(to)nf.to=to;vault.flows.push(nf);
   if(freq)vault.recurrences.push({id:uid(),type,amount:round2(amount),category:cat,label,freq,day:Math.min(28,+date.slice(8,10)),start:date.slice(0,7),end:null,active:true});
   /* le mouvement doit être visible : on se place sur son mois et on lève le filtre de catégorie */
   selectedMonth=date.slice(0,7);$("monthPick").value=selectedMonth;$("flFilterCat").value="";
@@ -853,7 +958,7 @@ document.addEventListener("click",e=>{const b=e.target.closest("[data-per],[data
   $("monthPick").value=selectedMonth;renderAll()});
 [["bIncome","income",true],["bSaving","saving",false],["bSafety","safety",false],["bCash","cash",true]].forEach(([id,k,nul])=>$(id).onchange=()=>{const x=numOrNull($(id).value);
   if(Number.isNaN(x)||(x!==null&&x<0&&k!=="cash")){toast("Montant invalide.");renderBudget();return}
-  const B=bud();B[k]=x===null?(nul?null:0):round2(x);if(k==="cash")B.cashDate=x===null?null:todayStr();touch();renderForecast()});
+  const B=bud();B[k]=x===null?(nul?null:0):round2(x);if(k==="cash"){B.cashDate=x===null?null:todayStr();const c=curAcc();if(c)c.anchor=x===null?null:{amount:round2(x),date:todayStr(),ts:Date.now()}}touch();renderAll()});
 $("envTable").onchange=e=>{const i=e.target.closest("[data-env]");if(!i)return;const x=numOrNull(i.value);
   if(Number.isNaN(x)||(x!==null&&x<0)){toast("Montant invalide.");renderForecast();return}
   if(x===null)delete bud().envelopes[i.dataset.env];else bud().envelopes[i.dataset.env]=round2(x);touch();renderForecast()};
@@ -878,6 +983,34 @@ $("trendCatSel").onchange=e=>{trendCatSel=e.target.value;renderCatChart()};
 $("poles").onclick=e=>{const b=e.target.closest("[data-poleshift],[data-poleto]");if(!b)return;
   poleSlide=b.dataset.poleto!==undefined?+b.dataset.poleto:(poleSlide+ +b.dataset.poleshift+poleCount)%poleCount;renderPoles()};
 $("xlsxBtn").onclick=exportXlsx;
+$("accMetrics").onclick=e=>{if(e.target.closest("[data-gosav]"))tab("savings")};
+$("fCategory").onchange=syncFTo;$("tDate").value=todayStr();
+$("accAdd").onclick=()=>$("accForm").classList.toggle("hidden");$("accCancel").onclick=()=>$("accForm").classList.add("hidden");
+$("accSave").onclick=()=>{const nm=cleanName($("aName").value),r=numClean($("aRate").value),g=numClean($("aGoal").value),s=numClean($("aStart").value);
+  if(!nm){toast("Donne un nom au compte.");return}
+  if(vault.accounts.some(x=>nz(x.name)===nz(nm))){toast("Ce nom est déjà utilisé.");return}
+  if([r,g,s].some(Number.isNaN)||(r!==null&&(r<0||r>100))||(g!==null&&g<=0)||(s!==null&&(s<0||s>1e9))){toast("Taux, objectif ou solde invalide.");return}
+  vault.accounts.push({id:uid(),name:nm,kind:"savings",anchor:s===null?null:{amount:round2(s),date:todayStr(),ts:Date.now()},rate:r,goal:g===null?null:round2(g)});
+  ["aName","aStart","aRate","aGoal"].forEach(i=>$(i).value="");$("accForm").classList.add("hidden");touch();renderAll();toast("Compte d'épargne ajouté.")};
+$("accList").onclick=async e=>{
+  const r=e.target.closest("[data-recal]"),ed=e.target.closest("[data-editacc]"),dl=e.target.closest("[data-delacc]"),id=(r||ed||dl||{dataset:{}}).dataset.recal||(ed&&ed.dataset.editacc)||(dl&&dl.dataset.delacc),a=vault.accounts.find(x=>x.id===id);
+  if(!a)return;
+  if(r){const cur=a.anchor?accNow(a):null,res=await modal({title:"Recaler « "+a.name+" »",text:"Saisis le solde réel d'aujourd'hui (relevé bancaire). Les flux saisis ensuite le feront évoluer automatiquement.",fields:[{name:"v",label:"Solde réel (€)",value:cur===null?"":String(cur).replace(".",",")}],ok:"Recaler"});
+    if(!res)return;const x=numClean(res.v);if(x===null||Number.isNaN(x)||Math.abs(x)>1e9||(a.kind==="savings"&&x<0)){toast("Montant invalide.");return}
+    a.anchor={amount:round2(x),date:todayStr(),ts:Date.now()};if(a.kind==="current"){const B=bud();B.cash=round2(x);B.cashDate=todayStr()}
+    touch();renderAll();toast(cur!==null&&Math.abs(cur-x)>=0.005?"Solde recalé. Écart avec le calcul : "+(x-cur>=0?"+":"−")+money(Math.abs(x-cur))+" (mouvement oublié ?).":"Solde recalé.");return}
+  if(ed){const f=[{name:"n",label:"Nom",value:a.name,max:32}];if(a.kind==="savings")f.push({name:"r",label:"Taux annuel (%, vide = aucun)",value:a.rate===null?"":fr1(a.rate)},{name:"g",label:"Objectif (€, vide = aucun)",value:a.goal===null?"":fr1(a.goal)});
+    const res=await modal({title:"Modifier le compte",fields:f,ok:"Enregistrer"});if(!res)return;const nm=cleanName(res.n);
+    if(!nm){toast("Nom requis.");return}if(vault.accounts.some(x=>x.id!==a.id&&nz(x.name)===nz(nm))){toast("Ce nom est déjà utilisé.");return}
+    if(a.kind==="savings"){const rr=numClean(res.r),gg=numClean(res.g);if(Number.isNaN(rr)||Number.isNaN(gg)||(rr!==null&&(rr<0||rr>100))||(gg!==null&&gg<=0)){toast("Taux ou objectif invalide.");return}a.rate=rr;a.goal=gg===null?null:round2(gg)}
+    a.name=nm;touch();renderAll();return}
+  if(dl){if(!confirm("Supprimer « "+a.name+" » ainsi que ses virements ? Les flux financiers ne sont pas touchés."))return;
+    vault.accounts=vault.accounts.filter(x=>x.id!==a.id);vault.transfers=vault.transfers.filter(t=>t.from!==a.id&&t.to!==a.id);vault.flows.forEach(f=>{if(f.to===a.id)delete f.to});touch();renderAll()}};
+$("tAdd").onclick=()=>{const date=$("tDate").value,am=numClean($("tAmount").value),from=$("tFrom").value||null,to=$("tTo").value||null,label=$("tLabel").value.trim().slice(0,32);
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(date)||am===null||Number.isNaN(am)||am<=0||am>1e9){toast("Date et montant positif requis.");return}
+  if(from===to){toast(from===null?"Choisis au moins un compte.":"Les deux comptes sont identiques.");return}
+  vault.transfers.push({id:uid(),date,from,to,amount:round2(am),label,ts:Date.now(),interest:from===null});$("tAmount").value="";$("tLabel").value="";touch();renderAll();toast("Virement enregistré.")};
+$("trList").onclick=e=>{const b=e.target.closest("[data-deltr]");if(b&&confirm("Supprimer ce virement ?")){vault.transfers=vault.transfers.filter(t=>t.id!==b.dataset.deltr);touch();renderAll()}};
 if(!crypto||!crypto.subtle)toast("Web Crypto indisponible : ouvre l'application depuis localhost (voir le guide) pour chiffrer et ouvrir des coffres.");
 vault=blankVault();selectedMonth=monthNow();dirty=false;showApp();
 </script>
